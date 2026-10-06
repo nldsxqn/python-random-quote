@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
 type Decision = {
@@ -42,6 +43,7 @@ type TreeNode = {
 };
 
 export default function AnalyzePage() {
+  const { t } = useI18n();
   const [handId, setHandId] = useState("1");
   const [report, setReport] = useState<Report | null>(null);
   const [selected, setSelected] = useState(0);
@@ -64,35 +66,36 @@ export default function AnalyzePage() {
 
   return (
     <main className="study">
-      <h1>Analyze</h1>
+      <h1>{t("Analyze")}</h1>
       <p className="note">
-        <Link href="/play">Play</Link>
+        <Link href="/play">{t("Play")}</Link>
         {" · "}
-        <Link href="/trainer">Trainer</Link>
+        <Link href="/trainer">{t("Trainer")}</Link>
       </p>
       <div className="row">
         <input
           data-testid="analyze-hand-id"
           value={handId}
-          aria-label="Hand id"
+          aria-label={t("Hand id")}
           onChange={(event) => setHandId(event.target.value)}
         />
         <button type="button" data-testid="analyze-load" onClick={() => void load()}>
-          Load hand
+          {t("Load hand")}
         </button>
       </div>
       {report ? (
         <section>
           <p className="meta" data-testid="analyze-board">
-            Board {report.board.join(" ") || "none"}
+            {t("Board")} {report.board.join(" ") || t("none")}
           </p>
           <Tree node={report.tree} />
+          {report.decisions.length === 0 ? <p>{t("No decisions to review.")}</p> : null}
           <ul data-testid="decision-list">
             {report.decisions.map((item, index) => (
               <li key={`${item.street}-${item.seat}-${index}`}>
                 <button type="button" onClick={() => setSelected(index)}>
-                  {item.street} {item.position} {item.action}
-                  {item.severity ? ` · ${item.severity}` : ""}
+                  {t(item.street)} {item.position} {t(item.action)}
+                  {item.severity ? ` · ${t(item.severity)}` : ""}
                   {item.metadata?.label ? ` · ${item.metadata.label}` : ""}
                 </button>
               </li>
@@ -101,16 +104,17 @@ export default function AnalyzePage() {
           {decision ? <DecisionView decision={decision} /> : null}
         </section>
       ) : null}
-      <p className="error">{error}</p>
+      <p className="error">{t(error)}</p>
     </main>
   );
 }
 
 function DecisionView({ decision }: { decision: Decision }) {
+  const { t } = useI18n();
   return (
     <div data-testid="decision-detail">
       <p className="meta">
-        {decision.metadata?.label} · pot {decision.table.pot} · {decision.table.board.join(" ")}
+        {decision.metadata?.label} · {t("Pot")} {decision.table.pot} · {decision.table.board.join(" ")}
       </p>
       <ul className="seats">
         {decision.table.players.map((player) => (
@@ -118,22 +122,22 @@ function DecisionView({ decision }: { decision: Decision }) {
             <strong>
               {player.nickname} {player.position}
             </strong>
-            <div>Stack {player.stack}</div>
+            <div>{t("Stack")} {player.stack}</div>
           </li>
         ))}
       </ul>
       <p data-testid="decision-strategy">
         {Object.entries(decision.frequencies)
-          .map(([action, frequency]) => `${action} ${Math.round(frequency * 100)}%`)
-          .join(" · ") || "No strategy"}
+          .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
+          .join(" · ") || t("No strategy")}
       </p>
       <p data-testid="decision-ev">
         {Object.entries(decision.evs)
-          .map(([action, value]) => `${action} ${value.toFixed(2)}`)
+          .map(([action, value]) => `${t(action)} ${value.toFixed(2)}`)
           .join(" · ")}
-        {decision.ev_loss_bb === null ? "" : ` · EV loss ${decision.ev_loss_bb.toFixed(2)} BB`}
+        {decision.ev_loss_bb === null ? "" : ` · ${t("EV loss")} ${decision.ev_loss_bb.toFixed(2)} BB`}
       </p>
-      <p>Hero {decision.hero_cards.join(" ")}</p>
+      <p>{t("Hero")} {decision.hero_cards.join(" ")}</p>
       <Matrix grid={decision.matrix} />
     </div>
   );
@@ -156,11 +160,12 @@ function Matrix({ grid }: { grid: number[][] }) {
 }
 
 function Tree({ node }: { node: TreeNode }) {
+  const { t } = useI18n();
   return (
     <ul data-testid="hand-tree">
       {node.action ? (
         <li>
-          {node.street} seat {node.seat} {node.action}
+          {node.street ? t(node.street) : ""} {t("seat")} {node.seat} {t(node.action)}
           {node.amount ? ` ${node.amount}` : ""}
         </li>
       ) : null}

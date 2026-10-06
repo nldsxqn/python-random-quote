@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/lib/i18n";
 import { apiUrl, wsUrl } from "@/lib/server-url";
 
 type LinkState = "Checking" | "Connected" | "Disconnected";
 
 export default function HomePage() {
+  const { t } = useI18n();
   const [backend, setBackend] = useState<LinkState>("Checking");
   const [socketState, setSocketState] = useState<LinkState>("Checking");
 
@@ -88,26 +90,26 @@ export default function HomePage() {
   return (
     <main className="page">
       <h1>OpenPokerLab</h1>
-      <section className="panel" aria-label="Connection status">
-        <StatusBlock label="Backend" state={backend} />
-        <StatusBlock label="WebSocket" state={socketState} />
+      <section className="panel" aria-label={t("Connection status")}>
+        <StatusBlock label={t("Backend")} state={backend} text={t(backend)} />
+        <StatusBlock label={t("WebSocket")} state={socketState} text={t(socketState)} />
       </section>
       <p className="note">
-        <Link href="/play">Play</Link>
+        <Link href="/play">{t("Play")}</Link>
         {" · "}
-        <Link href="/replay">Replay</Link>
+        <Link href="/replay">{t("Replay")}</Link>
         {" · "}
-        <Link href="/analyze">Analyze</Link>
+        <Link href="/analyze">{t("Analyze")}</Link>
         {" · "}
-        <Link href="/trainer">Trainer</Link>
+        <Link href="/trainer">{t("Trainer")}</Link>
         {" · "}
-        <Link href="/settings">Settings</Link>
+        <Link href="/settings">{t("Settings")}</Link>
       </p>
     </main>
   );
 }
 
-function StatusBlock({ label, state }: { label: string; state: LinkState }) {
+function StatusBlock({ label, state, text }: { label: string; state: LinkState; text: string }) {
   return (
     <div className="block">
       <h2>{label}</h2>
@@ -115,7 +117,7 @@ function StatusBlock({ label, state }: { label: string; state: LinkState }) {
         <span className="dot" data-state={state} aria-hidden="true">
           ●
         </span>{" "}
-        {state}
+        {text}
       </p>
     </div>
   );

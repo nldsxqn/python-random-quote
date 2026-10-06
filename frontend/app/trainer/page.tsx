@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
 type Prompt = {
@@ -33,6 +34,7 @@ type Reveal = {
 };
 
 export default function TrainerPage() {
+  const { t } = useI18n();
   const [street, setStreet] = useState("");
   const [position, setPosition] = useState("");
   const [severity, setSeverity] = useState("");
@@ -94,53 +96,54 @@ export default function TrainerPage() {
 
   return (
     <main className="study">
-      <h1>Trainer</h1>
+      <h1>{t("Trainer")}</h1>
       <p className="note">
-        <Link href="/analyze">Analyze</Link>
+        <Link href="/analyze">{t("Analyze")}</Link>
         {" · "}
-        <Link href="/play">Play</Link>
+        <Link href="/play">{t("Play")}</Link>
       </p>
       <div className="row">
         <input
           data-testid="filter-street"
           value={street}
-          placeholder="street"
-          aria-label="Street"
+          placeholder="PREFLOP"
+          aria-label={t("Street")}
           onChange={(event) => setStreet(event.target.value)}
         />
         <input
           data-testid="filter-position"
           value={position}
-          placeholder="position"
-          aria-label="Position"
+          placeholder="BTN"
+          aria-label={t("Position")}
           onChange={(event) => setPosition(event.target.value)}
         />
         <input
           data-testid="filter-severity"
           value={severity}
-          placeholder="severity"
-          aria-label="Severity"
+          placeholder="Large"
+          aria-label={t("Severity")}
           onChange={(event) => setSeverity(event.target.value)}
         />
         <input
           data-testid="filter-from"
           value={dateFrom}
-          placeholder="from"
-          aria-label="From date"
+          placeholder="YYYY-MM-DD"
+          aria-label={t("From date")}
           onChange={(event) => setDateFrom(event.target.value)}
         />
         <input
           data-testid="filter-to"
           value={dateTo}
-          placeholder="to"
-          aria-label="To date"
+          placeholder="YYYY-MM-DD"
+          aria-label={t("To date")}
           onChange={(event) => setDateTo(event.target.value)}
         />
         <button type="button" data-testid="filter-apply" onClick={() => void load()}>
-          Filter
+          {t("Filter")}
         </button>
       </div>
       <ul data-testid="trainer-list">
+        {spots.length === 0 ? <li>{t("No saved spots yet.")}</li> : null}
         {spots.map((spot) => (
           <li key={spot.id}>
             <button
@@ -150,7 +153,7 @@ export default function TrainerPage() {
                 setReveal(null);
               }}
             >
-              {spot.street} {spot.position} {spot.severity}
+              {t(spot.street)} {spot.position} {t(spot.severity)}
             </button>
           </li>
         ))}
@@ -158,7 +161,7 @@ export default function TrainerPage() {
       {current ? (
         <section data-testid="trainer-spot">
           <p>
-            {current.prompt.street} {current.prompt.position} · pot {current.prompt.pot}
+            {t(current.prompt.street)} {current.prompt.position} · {t("Pot")} {current.prompt.pot}
           </p>
           <p data-testid="trainer-board">{current.prompt.board.join(" ")}</p>
           <p data-testid="trainer-cards">{current.prompt.hero_cards.join(" ")}</p>
@@ -170,7 +173,7 @@ export default function TrainerPage() {
                 data-testid="trainer-action"
                 onClick={() => void choose(action)}
               >
-                {action}
+                {t(action)}
               </button>
             ))}
           </div>
@@ -178,23 +181,23 @@ export default function TrainerPage() {
       ) : null}
       {reveal ? (
         <section data-testid="trainer-reveal">
-          <p>Your action {reveal.your_action}</p>
+          <p>{t("Your action")} {t(reveal.your_action)}</p>
           <p>
             {Object.entries(reveal.frequencies)
-              .map(([action, frequency]) => `${action} ${Math.round(frequency * 100)}%`)
+              .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
               .join(" · ")}
           </p>
           <p>
             {Object.entries(reveal.evs)
-              .map(([action, value]) => `${action} ${value.toFixed(2)}`)
+              .map(([action, value]) => `${t(action)} ${value.toFixed(2)}`)
               .join(" · ")}
           </p>
           <p>
-            Original {reveal.original_action} · EV loss {reveal.ev_loss.toFixed(2)} BB
+            {t("Original")} {t(reveal.original_action)} · {t("EV loss")} {reveal.ev_loss.toFixed(2)} BB
           </p>
         </section>
       ) : null}
-      <p className="error">{error}</p>
+      <p className="error">{t(error)}</p>
     </main>
   );
 }

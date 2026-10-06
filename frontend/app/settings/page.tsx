@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { buyInBounds, defaultBuyIn } from "@/lib/buy-in";
+import { useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 const STORAGE_KEY = "openpokerlab.play";
 
@@ -21,12 +23,15 @@ type Session = {
 };
 
 export default function SettingsPage() {
+  const { t } = useI18n();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [gtoMode, setGtoMode] = useState("competitive");
   const [variant, setVariant] = useState("nlhe");
   const [botKind, setBotKind] = useState("rule");
   const [straddle, setStraddle] = useState("utg");
+  const [buyInAmount, setBuyInAmount] = useState("1000");
+  const [buyLimits, setBuyLimits] = useState<{ min: number; max: number } | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -40,7 +45,17 @@ export default function SettingsPage() {
     try {
       const parsed = JSON.parse(saved) as { roomId?: string; guestToken?: string };
       if (parsed.roomId && parsed.guestToken) {
-        setSession({ roomId: parsed.roomId, guestToken: parsed.guestToken });
+        const next = { roomId: parsed.roomId, guestToken: parsed.guestToken };
+        setSession(next);
+        void fetch(apiUrl(`/rooms/${next.roomId}?guest_token=${encodeURIComponent(next.guestToken)}`))
+          .then((response) => (response.ok ? response.json() : null))
+          .then((body: { settings?: { rules?: Record<string, unknown>; big_blind?: number } } | null) => {
+            const rules = body?.settings?.rules;
+            const blind = body?.settings?.big_blind ?? 2;
+            setBuyLimits(buyInBounds(rules, blind));
+            setBuyInAmount(String(defaultBuyIn(rules, blind)));
+          })
+          .catch(() => undefined);
       }
     } catch {
       setSession(null);
@@ -57,23 +72,41 @@ export default function SettingsPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ guest_token: session.guestToken, ...extra }),
     });
-    setMessage(response.ok ? "Saved" : "The table rejected that change");
+    if (response.ok) {
+      setMessage("Saved");
+      return;
+    }
+    const raw = await response.text();
+    setMessage(serverText(raw) || "The table rejected that change");
+  }
+
+  function addBot(): void {
+    const parsed = Number(buyInAmount);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      setMessage("buy-in must be a positive integer");
+      return;
+    }
+    if (buyLimits && (parsed < buyLimits.min || parsed > buyLimits.max)) {
+      setMessage(`buy-in must be from ${buyLimits.min} to ${buyLimits.max}`);
+      return;
+    }
+    void post("/bots", { kind: botKind, amount: parsed });
   }
 
   return (
     <main className="study">
-      <h1>Settings</h1>
+      <h1>{t("Settings")}</h1>
       <p className="note">
-        <Link href="/play">Play</Link>
+        <Link href="/play">{t("Play")}</Link>
         {" · "}
-        <Link href="/analyze">Analyze</Link>
+        <Link href="/analyze">{t("Analyze")}</Link>
       </p>
-      <p data-testid="database-path">Database {catalog?.database_path ?? "…"}</p>
+      <p data-testid="database-path">{t("Database")} {catalog?.database_path ?? "…"}</p>
       <p data-testid="cash-settlement">
-        Cash settlement {catalog?.cash_settlement ? "on" : "off"}
+        {t("Cash settlement")} {catalog?.cash_settlement ? t("on") : t("off")}
       </p>
       <label>
-        GTO mode
+        {t("GTO mode")}
         <select
           data-testid="settings-gto"
           value={gtoMode}
@@ -81,18 +114,18 @@ export default function SettingsPage() {
         >
           {(catalog?.gto_modes ?? ["competitive", "study"]).map((mode) => (
             <option key={mode} value={mode}>
-              {mode}
+              {t(mode)}
             </option>
           ))}
         </select>
       </label>
       <div className="row">
         <button type="button" onClick={() => void post("/settings", { gto_mode: gtoMode })}>
-          Save GTO mode
+          {t("Save GTO mode")}
         </button>
       </div>
       <label>
-        Variant
+        {t("Variant")}
         <select
           data-testid="settings-variant"
           value={variant}
@@ -100,18 +133,18 @@ export default function SettingsPage() {
         >
           {(catalog?.variants ?? ["nlhe"]).map((item) => (
             <option key={item} value={item}>
-              {item}
+              {t(item)}
             </option>
           ))}
         </select>
       </label>
       <div className="row">
         <button type="button" onClick={() => void post("/settings", { variant })}>
-          Save variant
+          {t("Save variant")}
         </button>
       </div>
       <label>
-        Straddle
+        {t("Straddle")}
         <select
           data-testid="settings-straddle"
           value={straddle}
@@ -119,7 +152,7 @@ export default function SettingsPage() {
         >
           {(catalog?.straddle_styles ?? ["utg"]).map((style) => (
             <option key={style} value={style}>
-              {style}
+              {t(style)}
             </option>
           ))}
         </select>
@@ -138,20 +171,20 @@ export default function SettingsPage() {
             })
           }
         >
-          Save straddle
+          {t("Save straddle")}
         </button>
         <button
           type="button"
           onClick={() => void post("/settings", { rules: { bomb_pot: { amount: 1, boards: 2 } } })}
         >
-          Double-board bomb
+          {t("Double-board bomb")}
         </button>
         <button type="button" onClick={() => void post("/settings", { rules: { insurance: true } })}>
-          Simplified insurance
+          {t("Simplified insurance")}
         </button>
       </div>
       <label>
-        Bot
+        {t("Bot")}
         <select
           data-testid="settings-bot"
           value={botKind}
@@ -159,17 +192,55 @@ export default function SettingsPage() {
         >
           {(catalog?.bot_kinds ?? ["rule"]).map((kind) => (
             <option key={kind} value={kind}>
-              {kind}
+              {t(kind)}
             </option>
           ))}
         </select>
       </label>
-      <div className="row">
-        <button type="button" data-testid="settings-add-bot" onClick={() => void post("/bots", { kind: botKind })}>
-          Add bot
+      <div className="row" data-testid="settings-buy-in">
+        <label htmlFor="settings-buy-in-amount">{t("Buy-in")}</label>
+        <input
+          id="settings-buy-in-amount"
+          data-testid="settings-buy-in-amount"
+          inputMode="numeric"
+          aria-label={t("Buy-in amount")}
+          value={buyInAmount}
+          onChange={(event) => setBuyInAmount(event.target.value)}
+        />
+        <span className="meta">
+          {buyLimits
+            ? `${t("Limit")} ${buyLimits.min}–${buyLimits.max} ${t("chips")}`
+            : `1000 ${t("play-money chips")}`}
+        </span>
+        <button type="button" data-testid="settings-add-bot" onClick={addBot}>
+          {t("Add bot")}
         </button>
       </div>
-      <p className="meta">{message}</p>
+      <p className="meta">{t(message)}</p>
     </main>
   );
+}
+
+function serverText(raw: string): string {
+  if (!raw.trim()) {
+    return "";
+  }
+  try {
+    const payload = JSON.parse(raw) as {
+      payload?: { message?: string };
+      detail?: unknown;
+    };
+    if (payload.payload?.message) {
+      return payload.payload.message;
+    }
+    if (Array.isArray(payload.detail)) {
+      const first = payload.detail[0] as { msg?: unknown };
+      if (typeof first?.msg === "string") {
+        return first.msg;
+      }
+    }
+  } catch {
+    return raw;
+  }
+  return raw;
 }

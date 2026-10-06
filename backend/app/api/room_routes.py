@@ -41,6 +41,7 @@ class BotBody(BaseModel):
     kind: str
     seat: int | None = None
     seed: int | None = None
+    amount: int | None = None
 
 
 class RemoveBotBody(BaseModel):
@@ -145,6 +146,7 @@ async def add_bot(room_id: str, body: BotBody, request: Request) -> dict:
             body.kind,
             body.seat,
             body.seed,
+            amount=body.amount,
         ),
     )
 

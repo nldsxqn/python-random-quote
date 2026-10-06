@@ -140,6 +140,31 @@ def test_buyin_limits_sit_and_added_chips() -> None:
         assert _stacks(client, host)[1] == 100
 
 
+def test_bot_buyin_uses_the_posted_amount() -> None:
+    with TestClient(app) as client:
+        host = _create(client, "Host")
+        saved = client.post(
+            f"/rooms/{host['room_id']}/settings",
+            json={
+                "guest_token": host["guest_token"],
+                "rules": {"buy_in": {"min": 40, "max": 100, "unit": "chips"}},
+            },
+        )
+        assert saved.status_code == 200
+        missing = client.post(
+            f"/rooms/{host['room_id']}/bots",
+            json={"guest_token": host["guest_token"], "kind": "rule"},
+        )
+        assert missing.status_code == 400
+        assert missing.json()["payload"]["message"] == "buy-in must be from 40 to 100"
+        seated = client.post(
+            f"/rooms/{host['room_id']}/bots",
+            json={"guest_token": host["guest_token"], "kind": "rule", "amount": 40},
+        )
+        assert seated.status_code == 200
+        assert _stacks(client, host)[seated.json()["seat"]] == 40
+
+
 def test_auto_top_up_records_play_money_and_the_new_total() -> None:
     rules = {"auto_top_up": {"threshold_bb": 20, "target_bb": 50}}
     game = _game([10, 100], rules, sb=1, bb=2)

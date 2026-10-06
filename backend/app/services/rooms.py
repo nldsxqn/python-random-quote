@@ -364,6 +364,7 @@ class RoomService:
         seat: int | None = None,
         seed: int | None = None,
         bot: PokerBot | None = None,
+        amount: int | None = None,
     ) -> dict:
         room, _host = self._require_host(token, "only the host can add a bot")
         self._reject_if_hand(room, "cannot add a bot during a hand")
@@ -387,7 +388,7 @@ class RoomService:
         self.by_token[member.token] = room.room_id
         self._add(room, "PLAYER_JOINED", {"nickname": member.nickname, "bot": label})
         try:
-            seated = self.sit(member.token, seat)
+            seated = self.sit(member.token, seat, amount)
         except RoomError:
             self._remove_member(room, member)
             raise

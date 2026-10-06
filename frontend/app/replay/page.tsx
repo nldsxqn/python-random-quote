@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
 type HandSummary = {
@@ -46,6 +47,7 @@ type HandDetail = {
 };
 
 export default function ReplayPage() {
+  const { t } = useI18n();
   const [roomId, setRoomId] = useState<string | null>(null);
   const [hands, setHands] = useState<HandSummary[]>([]);
   const [handId, setHandId] = useState<number | null>(null);
@@ -138,22 +140,22 @@ export default function ReplayPage() {
 
   const action = state?.action;
   const actionText = action
-    ? `${action.street} ${action.action}${action.amount !== null && action.amount !== undefined ? ` ${action.amount}` : ""}`
+    ? `${t(action.street)} ${t(action.action)}${action.amount !== null && action.amount !== undefined ? ` ${action.amount}` : ""}`
     : "";
 
   return (
     <main className="play">
-      <h1>Replay</h1>
+      <h1>{t("Replay")}</h1>
       <p className="note">
-        <Link href="/play">Table</Link>
+        <Link href="/play">{t("Table")}</Link>
       </p>
       <p className="error" data-testid="error">
-        {error}
+        {t(error)}
       </p>
-      <section className="table" aria-label="Saved hands">
-        <h2>Hands</h2>
+      <section className="table" aria-label={t("Saved hands")}>
+        <h2>{t("Hands")}</h2>
         <ul className="hand-list" data-testid="hand-list">
-          {hands.length === 0 ? <li>No saved hands yet.</li> : null}
+          {hands.length === 0 ? <li>{t("No saved hands yet.")}</li> : null}
           {hands.map((hand) => (
             <li key={hand.id}>
               <button
@@ -174,11 +176,11 @@ export default function ReplayPage() {
         </ul>
       </section>
       {state && detail ? (
-        <section className="table felt" aria-label="Hand replay">
-          <h2 data-testid="replay-street">{state.street}</h2>
+        <section className="table felt" aria-label={t("Hand replay")}>
+          <h2 data-testid="replay-street">{t(state.street)}</h2>
           <p className="meta" data-testid="replay-pot">
-            Pot {state.pot}
-            {state.showdown ? ` · rake ${state.rake} · bounty ${state.bounty}` : ""}
+            {t("Pot")} {state.pot}
+            {state.showdown ? ` · ${t("Rake")} ${state.rake} · ${t("Bounty")} ${state.bounty}` : ""}
           </p>
           <p className="meta" data-testid="replay-action">
             {actionText}
@@ -195,7 +197,7 @@ export default function ReplayPage() {
             <div data-testid="replay-runs">
               {state.boards.map((board, run) => (
                 <p className="meta" key={board.join("-")}>
-                  Run {run + 1}: {board.join(" ")}
+                  {t("Run")} {run + 1}: {board.join(" ")}
                 </p>
               ))}
             </div>
@@ -206,8 +208,8 @@ export default function ReplayPage() {
                 <strong>
                   {player.nickname} {player.position}
                 </strong>
-                <div>Stack {player.stack}</div>
-                <div>{player.hole_cards ? player.hole_cards.join(" ") : "hidden"}</div>
+                <div>{t("Stack")} {player.stack}</div>
+                <div>{player.hole_cards ? player.hole_cards.join(" ") : t("hidden")}</div>
               </li>
             ))}
           </ul>
@@ -221,7 +223,7 @@ export default function ReplayPage() {
                 setIndex((current) => Math.max(0, current - 1));
               }}
             >
-              Previous
+              {t("Previous")}
             </button>
             <button
               type="button"
@@ -232,19 +234,19 @@ export default function ReplayPage() {
                 setIndex((current) => current + 1);
               }}
             >
-              Next
+              {t("Next")}
             </button>
             <button type="button" data-testid="autoplay" onClick={() => setAutoplay((current) => !current)}>
-              {autoplay ? "Stop" : "Autoplay"}
+              {autoplay ? t("Stop") : t("Autoplay")}
             </button>
             <button type="button" data-testid="jump-flop" disabled={detail.jumps.flop === null} onClick={() => jump(detail.jumps.flop)}>
-              Flop
+              {t("Flop")}
             </button>
             <button type="button" data-testid="jump-turn" disabled={detail.jumps.turn === null} onClick={() => jump(detail.jumps.turn)}>
-              Turn
+              {t("Turn")}
             </button>
             <button type="button" data-testid="jump-river" disabled={detail.jumps.river === null} onClick={() => jump(detail.jumps.river)}>
-              River
+              {t("River")}
             </button>
             <button
               type="button"
@@ -252,7 +254,7 @@ export default function ReplayPage() {
               disabled={detail.jumps.showdown === null}
               onClick={() => jump(detail.jumps.showdown)}
             >
-              Showdown
+              {t("Showdown")}
             </button>
           </div>
         </section>
