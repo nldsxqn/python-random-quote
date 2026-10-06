@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import PokerTable from "@/components/PokerTable";
 import { buyInBounds, defaultBuyIn } from "@/lib/buy-in";
-import { useI18n } from "@/lib/i18n";
+import { displayName, useI18n } from "@/lib/i18n";
 import { apiUrl, wsUrl } from "@/lib/server-url";
 
 type PlayerRow = {
@@ -29,6 +29,7 @@ type RoomView = {
     small_blind: number;
     big_blind: number;
     seats: number;
+    pending_seats?: number | null;
     paused: boolean;
     pending_big_blind: number | null;
     rules: Record<string, unknown>;
@@ -280,6 +281,12 @@ export default function PlayPage() {
     : sizeMin;
   const sliderValue = clampSize(amount, sizeMin, sizeMax);
 
+  function stepBlind(direction: number): void {
+    const blind = view?.game.big_blind || view?.settings.big_blind || 2;
+    const next = clampSize(String((Number(amount) || sizeMin) + direction * blind), sizeMin, sizeMax);
+    setAmount(String(next));
+  }
+
   useEffect(() => {
     if (!sizeMode) {
       return;
@@ -309,6 +316,31 @@ export default function PlayPage() {
               {" · "}
               <span data-testid="bounty">{t("Bounty")} {view.game.bounty}</span>
             </span>
+            <AddBotBar
+              onAdd={(kind) => {
+                const chips = readBuyIn();
+                if (chips !== null) {
+                  void post("/bots", { kind, amount: chips });
+                }
+              }}
+            />
+            {view.you.is_host ? (
+              <label className="seat-count">
+                {t("Seats")}
+                <select
+                  data-testid="seat-count"
+                  aria-label={t("Seats")}
+                  value={view.settings.pending_seats ?? view.settings.seats}
+                  onChange={(event) => void post("/settings", { seats: Number(event.target.value) })}
+                >
+                  {[2, 3, 4, 5, 6, 7, 8, 9].map((count) => (
+                    <option key={count} value={count}>
+                      {count}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <button type="button" className="menu-toggle" data-testid="table-menu" onClick={() => setMenuOpen(true)}>
               {t("Table")}
             </button>
@@ -327,6 +359,12 @@ export default function PlayPage() {
             heroSeat={view.you.seat}
             players={view.players}
             seatCount={view.settings.seats}
+            onSit={(seat) => {
+              const chips = readBuyIn();
+              if (chips !== null) {
+                void post("/sit", { seat, amount: chips });
+              }
+            }}
           />
           {legal.length > 0 && view.you.gto?.frequencies ? (
             <FrequencyBar gto={view.you.gto} legal={legal} />
@@ -344,34 +382,75 @@ export default function PlayPage() {
             >
               {legal.includes("call") ? `${t("Call")} ${view.game.to_call}` : t("Check")}
             </button>
-            <div className="size-control">
-              <input
-                type="range"
-                min={sizeMin}
-                max={Math.max(sizeMin, sizeMax)}
-                step={1}
-                value={sliderValue}
-                disabled={!sizeMode}
-                aria-label={sizeMode === "raise" ? t("Raise") : t("Bet")}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-              <input
-                data-testid="amount"
-                inputMode="numeric"
-                value={amount}
-                disabled={!sizeMode}
-                placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-              <button
-                type="button"
-                className="act act-raise"
-                data-testid={sizeMode === "raise" ? "raise" : "bet"}
-                disabled={!sizeMode}
-                onClick={() => betOrRaise(sizeMode === "raise" ? "raise" : "bet")}
-              >
-                {sizeMode === "raise" ? t("Raise") : t("Bet")} {sliderValue}
-              </button>
+            <div className="size-stack">
+              <div className="size-control">
+                <button
+                  type="button"
+                  className="step"
+                  data-testid="size-minus"
+                  disabled={!sizeMode}
+                  aria-label={t("Decrease by one big blind")}
+                  onClick={() => stepBlind(-1)}
+                >
+                  −
+                </button>
+                <input
+                  type="range"
+                  min={sizeMin}
+                  max={Math.max(sizeMin, sizeMax)}
+                  step={1}
+                  value={sliderValue}
+                  disabled={!sizeMode}
+                  aria-label={sizeMode === "raise" ? t("Raise") : t("Bet")}
+                  onChange={(event) => setAmount(event.target.value)}
+                />
+                <input
+                  data-testid="amount"
+                  inputMode="numeric"
+                  value={amount}
+                  disabled={!sizeMode}
+                  placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
+                  onChange={(event) => setAmount(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="step"
+                  data-testid="size-plus"
+                  disabled={!sizeMode}
+                  aria-label={t("Increase by one big blind")}
+                  onClick={() => stepBlind(1)}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="act act-raise"
+                  data-testid={sizeMode === "raise" ? "raise" : "bet"}
+                  disabled={!sizeMode}
+                  onClick={() => betOrRaise(sizeMode === "raise" ? "raise" : "bet")}
+                >
+                  {sizeMode === "raise" ? t("Raise") : t("Bet")} {sliderValue}
+                </button>
+              </div>
+              <div className="pot-shortcuts" data-testid="pot-fractions">
+                {[
+                  ["1/4", 1 / 4],
+                  ["1/3", 1 / 3],
+                  ["1/2", 1 / 2],
+                  [t("1x"), 1],
+                  [t("2x pot"), 2],
+                ].map(([label, fraction]) => (
+                  <button
+                    type="button"
+                    key={String(label)}
+                    data-fraction={fraction}
+                    disabled={!sizeMode}
+                    onClick={() => setAmount(String(potSized(Number(fraction), view.game.pot, sizeMin, sizeMax)))}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             {legal.includes("all_in") ? (
               <button type="button" className="act act-allin" data-testid="all-in" onClick={() => sendAction("all_in")}>
@@ -469,12 +548,6 @@ export default function PlayPage() {
                     onRules={(rules) => void post("/settings", { rules })}
                     pending={view.settings.pending_rules !== null}
                     players={view.players}
-                    onAddBot={(kind) => {
-                      const chips = readBuyIn();
-                      if (chips !== null) {
-                        void post("/bots", { kind, amount: chips });
-                      }
-                    }}
                     onRemoveBot={(seat) => void post("/bots/remove", { seat })}
                     gtoMode={view.settings.gto_mode ?? "competitive"}
                     onGto={(mode) => void post("/settings", { gto_mode: mode })}
@@ -564,6 +637,32 @@ function actionName(action: string, t: (text: string) => string): string {
   return t(action);
 }
 
+function potSized(fraction: number, pot: number, min: number, max: number): number {
+  return clampSize(String(Math.round(Math.max(0, pot) * fraction)), min, max);
+}
+
+function AddBotBar({ onAdd }: { onAdd: (kind: string) => void }) {
+  const { t } = useI18n();
+  const [kind, setKind] = useState("rule");
+  return (
+    <div className="table-tools" data-testid="add-bot-bar">
+      <select
+        data-testid="bot-kind"
+        value={kind}
+        aria-label={t("Bot")}
+        onChange={(event) => setKind(event.target.value)}
+      >
+        <option value="rule">{t("rule")}</option>
+        <option value="equity">{t("equity")}</option>
+        <option value="strategy">{t("strategy")}</option>
+      </select>
+      <button type="button" className="tool-add" data-testid="add-bot" onClick={() => onAdd(kind)}>
+        {t("Add bot")}
+      </button>
+    </div>
+  );
+}
+
 function clampSize(value: string, min: number, max: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -594,7 +693,6 @@ function HostControls({
   onRules,
   pending,
   players,
-  onAddBot,
   onRemoveBot,
   gtoMode,
   onGto,
@@ -607,7 +705,6 @@ function HostControls({
   onRules: (rules: Record<string, unknown>) => void;
   pending: boolean;
   players: PlayerRow[];
-  onAddBot: (kind: string) => void;
   onRemoveBot: (seat: number) => void;
   gtoMode: string;
   onGto: (mode: string) => void;
@@ -615,7 +712,6 @@ function HostControls({
   const { t } = useI18n();
   const smallRef = useRef<HTMLInputElement>(null);
   const bigRef = useRef<HTMLInputElement>(null);
-  const [botKind, setBotKind] = useState("rule");
 
   return (
     <div className="host">
@@ -631,7 +727,7 @@ function HostControls({
           data-testid="gto-mode"
           onClick={() => onGto(gtoMode === "study" ? "competitive" : "study")}
         >
-          GTO {t(gtoMode)}
+          {t("GTO")} {t(gtoMode)}
         </button>
       </div>
       <div className="row">
@@ -651,19 +747,6 @@ function HostControls({
         </button>
       </div>
       <div className="row">
-        <select
-          data-testid="bot-kind"
-          value={botKind}
-          aria-label={t("Bot")}
-          onChange={(event) => setBotKind(event.target.value)}
-        >
-          <option value="rule">{t("rule")}</option>
-          <option value="equity">{t("equity")}</option>
-          <option value="strategy">{t("strategy")}</option>
-        </select>
-        <button type="button" data-testid="add-bot" disabled={inHand} onClick={() => onAddBot(botKind)}>
-          {t("Add bot")}
-        </button>
         {players
           .filter((player) => player.is_bot)
           .map((player) => (
@@ -675,7 +758,7 @@ function HostControls({
               key={player.seat}
               onClick={() => onRemoveBot(player.seat)}
             >
-              {t("Remove")} {player.nickname}
+              {t("Remove")} {displayName(player.nickname, t)}
             </button>
           ))}
       </div>

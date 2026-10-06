@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 
-import { useI18n } from "@/lib/i18n";
+import { displayName, useI18n } from "@/lib/i18n";
 
 export type TableSeat = {
   seat: number;
@@ -30,6 +30,7 @@ export type TableProps = {
   showdown?: boolean;
   seatCount?: number | null;
   layout?: "screen" | "embedded";
+  onSit?: (seat: number) => void;
 };
 
 const SUITS: Record<string, string> = { s: "♠", h: "♥", d: "♦", c: "♣" };
@@ -75,7 +76,8 @@ export function ChipStack({ amount, testId }: { amount: number; testId?: string 
 export default function PokerTable(props: TableProps) {
   const { t } = useI18n();
   const clock = useCountdown(props.remainingSeconds, props.actorSeat ?? null);
-  const occupied = Math.max(props.seatCount ?? 6, ...props.players.map((player) => player.seat + 1), 2);
+  const counted = props.seatCount ?? Math.max(2, ...props.players.map((player) => player.seat + 1), 2);
+  const occupied = Math.min(9, Math.max(2, counted, ...props.players.map((player) => player.seat + 1)));
   const anchor = props.heroSeat !== null && props.heroSeat < occupied ? props.heroSeat : 0;
   const bySeat = new Map(props.players.map((player) => [player.seat, player]));
   const live = Boolean(props.street && props.street !== "WAITING" && props.street !== "HAND_COMPLETE");
@@ -87,8 +89,16 @@ export default function PokerTable(props: TableProps) {
       data-testid="poker-table"
       data-seats={occupied}
     >
-      <div className="wood-rail" />
-      <div className="felt-oval" />
+      <div className="table-rail" />
+      <div className="felt-oval">
+        <div className="betting-line" />
+        <div className="felt-suits" aria-hidden="true">
+          <span>♠</span>
+          <span className="red">♥</span>
+          <span className="red">♦</span>
+          <span>♣</span>
+        </div>
+      </div>
       <div className="table-center">
         <p className="table-note" data-testid="hand-status">
           {props.handNumber != null ? (
@@ -132,7 +142,18 @@ export default function PokerTable(props: TableProps) {
         if (!player) {
           return (
             <div className="table-seat empty" key={`empty-${seat}`} style={place}>
-              <span className="empty-seat" aria-label={t("Empty seat")} />
+              {props.onSit ? (
+                <button
+                  type="button"
+                  className="empty-seat"
+                  data-testid="empty-seat"
+                  data-seat={seat}
+                  aria-label={`${t("Empty seat")} ${seat}`}
+                  onClick={() => props.onSit?.(seat)}
+                />
+              ) : (
+                <span className="empty-seat" data-testid="empty-seat" data-seat={seat} aria-label={t("Empty seat")} />
+              )}
             </div>
           );
         }
@@ -176,7 +197,7 @@ export default function PokerTable(props: TableProps) {
                 ) : null}
               </span>
               <span className="seat-copy">
-                <strong>{player.nickname}</strong>
+                <strong>{displayName(player.nickname, t)}</strong>
                 <span>
                   {t("Stack")} {player.stack}
                 </span>
@@ -247,7 +268,7 @@ function holeCards(
 function slotStyle(seat: number, count: number, anchor: number): { left: string; top: string } {
   const index = (seat - anchor + count) % count;
   const angle = Math.PI / 2 + (2 * Math.PI * index) / count;
-  return point(angle, 44, 40);
+  return point(angle, 40, 37);
 }
 
 function betStyle(seat: number, count: number, anchor: number): { left: string; top: string } {

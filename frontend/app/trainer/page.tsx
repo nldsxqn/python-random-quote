@@ -106,21 +106,21 @@ export default function TrainerPage() {
         <input
           data-testid="filter-street"
           value={street}
-          placeholder="PREFLOP"
+          placeholder={t("PREFLOP")}
           aria-label={t("Street")}
           onChange={(event) => setStreet(event.target.value)}
         />
         <input
           data-testid="filter-position"
           value={position}
-          placeholder="BTN"
+          placeholder={t("BTN")}
           aria-label={t("Position")}
           onChange={(event) => setPosition(event.target.value)}
         />
         <input
           data-testid="filter-severity"
           value={severity}
-          placeholder="Large"
+          placeholder={t("Large")}
           aria-label={t("Severity")}
           onChange={(event) => setSeverity(event.target.value)}
         />
@@ -153,7 +153,7 @@ export default function TrainerPage() {
                 setReveal(null);
               }}
             >
-              {t(spot.street)} {spot.position} {t(spot.severity)}
+              {t(spot.street)} {t(spot.position)} {t(spot.severity)}
             </button>
           </li>
         ))}
@@ -161,7 +161,7 @@ export default function TrainerPage() {
       {current ? (
         <section data-testid="trainer-spot">
           <p>
-            {t(current.prompt.street)} {current.prompt.position} · {t("Pot")} {current.prompt.pot}
+            {t(current.prompt.street)} {t(current.prompt.position)} · {t("Pot")} {current.prompt.pot}
           </p>
           <p data-testid="trainer-board">{current.prompt.board.join(" ")}</p>
           <p data-testid="trainer-cards">{current.prompt.hero_cards.join(" ")}</p>

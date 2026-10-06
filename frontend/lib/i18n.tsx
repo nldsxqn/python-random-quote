@@ -57,8 +57,8 @@ const zh: Record<string, string> = {
   "Ante amount": "前注金额",
   normal: "每人",
   "bb ante": "大盲代下",
-  "UTG straddle": "UTG straddle",
-  "Straddle big blinds": "Straddle 大盲倍数",
+  "UTG straddle": "枪口强抓",
+  "Straddle big blinds": "强抓的大盲倍数",
   "Buy-in": "买入",
   "Minimum buy-in": "最低买入",
   "Maximum buy-in": "最高买入",
@@ -145,12 +145,13 @@ const zh: Record<string, string> = {
   "Cash settlement": "现金结算",
   on: "开启",
   off: "关闭",
-  "GTO mode": "GTO 模式",
-  "Save GTO mode": "保存 GTO 模式",
+  GTO: "策略",
+  "GTO mode": "策略模式",
+  "Save GTO mode": "保存策略模式",
   Variant: "变体",
   "Save variant": "保存变体",
-  Straddle: "Straddle",
-  "Save straddle": "保存 straddle",
+  Straddle: "强抓",
+  "Save straddle": "保存强抓",
   "Double-board bomb": "双面炸弹底池",
   "Simplified insurance": "简化保险",
   "Open a table from Play first": "请先在打牌页打开一桌",
@@ -160,12 +161,34 @@ const zh: Record<string, string> = {
   study: "学习",
   nlhe: "德州",
   short_deck: "短牌",
-  utg: "UTG",
-  mississippi: "Mississippi",
+  utg: "枪口",
+  mississippi: "密西西比",
   custom: "自定义",
   rule: "规则机器人",
-  equity: "权益机器人",
+  equity: "胜率机器人",
   strategy: "策略机器人",
+  RuleBot: "规则机器人",
+  EquityBot: "胜率机器人",
+  StrategyBot: "策略机器人",
+  Bot: "机器人",
+  BTN: "按钮",
+  CO: "关位",
+  HJ: "劫持位",
+  MP: "中位",
+  LJ: "低劫持",
+  UTG: "枪口",
+  UTG1: "枪口+1",
+  Seats: "座位数",
+  "1x": "1倍",
+  "2x pot": "2倍底池",
+  "Decrease by one big blind": "减少一个大盲",
+  "Increase by one big blind": "增加一个大盲",
+  "Approximate Analysis": "近似分析",
+  unavailable: "不可用",
+  simplified: "简化",
+  mock: "模拟",
+  "post-hand": "赛后",
+  withheld: "隐藏",
   Language: "语言",
   "Buy-in amount": "买入筹码",
   "play-money chips": "娱乐筹码",
@@ -200,6 +223,51 @@ const zh: Record<string, string> = {
   "unknown bot": "未知的机器人",
   "unknown action": "未知动作",
   "added chips must be a positive integer": "补码必须是正整数",
+  "seats must be from 2 to 9": "座位数必须在 2 到 9 之间",
+  "seat count is below an occupied seat": "座位数小于已占用的座位",
+  "small blind must be less than big blind": "小盲必须小于大盲",
+  "gto mode must be competitive or study": "策略模式只能是竞技或学习",
+  "variant must be nlhe or short_deck": "变体只能是德州或短牌",
+  "not contesting this pot": "你不在这个底池里",
+  "run it twice vote must be yes or no": "发两次只能选是或否",
+  "insurance is not offered": "当前没有保险",
+  "insurance answer must be yes or no": "保险只能选是或否",
+  "cannot change the deck during a hand": "手牌进行中不能换牌组",
+  "tournament settings must be an object": "锦标赛设置格式不对",
+  "blind level must be integers": "盲注级别必须是整数",
+  "tournament needs a blind level": "锦标赛需要一个盲注级别",
+  "hands_per_level must be a positive integer": "每级手数必须是正整数",
+  "could not allocate an invite code": "无法生成邀请码",
+  "hand already in progress": "这手牌已经开始",
+  "need at least 2 players with chips": "至少需要两名有筹码的玩家",
+  "run it twice is not offered": "当前不能发两次",
+  "already voted": "已经投过票",
+  "only the quoted player can answer": "只有被报价的玩家可以回应",
+  "unknown seat": "未知座位",
+  "no action is pending": "当前没有待处理的行动",
+  "out of turn": "还没轮到你",
+  "player cannot act": "这个玩家不能行动",
+  "cannot check facing a bet": "面对下注不能过牌",
+  "this action needs an amount": "这个动作需要数量",
+  "this action does not take an amount": "这个动作不需要数量",
+  "amount must be a positive integer": "数量必须是正整数",
+  "nothing to call": "没有需要跟的注",
+  "insufficient stack to call": "筹码不够跟注",
+  "cannot bet facing a bet": "面对下注不能再下注",
+  "bet exceeds stack": "下注超过筹码",
+  "bet below minimum": "下注低于最小额",
+  "nothing to raise": "没有可以加的注",
+  "betting was not reopened": "下注没有重新打开",
+  "raise must increase the street commitment": "加注必须提高本街投入",
+  "raise exceeds stack": "加注超过筹码",
+  "raise below minimum": "加注低于最小额",
+  "no chips to go all-in": "没有筹码可以全下",
+  "all-in raise is not allowed; betting was not reopened": "下注没有重新打开，不能全下加注",
+  "a bomb pot starts on the flop, so a straddle is not available": "炸弹底池从翻牌开始，不能强抓",
+  "rules must be an object": "规则格式不对",
+  "run_it_twice must be true or false": "发两次只能是开或关",
+  "insurance must be true or false": "保险只能是开或关",
+  "only the host can change the rules": "只有房主可以改规则",
   "Real-time multiway GTO analysis is not available. Post-hand analysis will be available after the hand.":
     "多人牌局暂不提供实时 GTO。本手结束后可以做赛后分析。",
   "Preflop is not solved as exact GTO.": "翻牌前不会被标成精确 GTO。",
@@ -252,7 +320,30 @@ export function localize(lang: Lang, text: string): string {
   if (cap) {
     return `筹码不能超过 ${cap[1]}`;
   }
+  const finished = text.match(/^tournament is complete: (.+)$/);
+  if (finished) {
+    return `锦标赛已结束：${finished[1]}`;
+  }
+  const unknown = text.match(/^unknown bot '(.+)'; expected (.+)$/);
+  if (unknown) {
+    return `未知的机器人「${unknown[1]}」，可选 ${unknown[2]}`;
+  }
   return zh[text] ?? text;
+}
+
+const BOT_LABELS = ["RuleBot", "EquityBot", "StrategyBot", "Bot"];
+
+export function displayName(nickname: string, t: (text: string) => string): string {
+  for (const label of BOT_LABELS) {
+    if (nickname === label) {
+      return t(label);
+    }
+    const prefix = `${label} `;
+    if (nickname.startsWith(prefix) && /^\d+$/.test(nickname.slice(prefix.length))) {
+      return `${t(label)} ${nickname.slice(prefix.length)}`;
+    }
+  }
+  return nickname;
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

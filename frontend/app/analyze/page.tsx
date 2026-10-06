@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { useI18n } from "@/lib/i18n";
+import { displayName, useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
 type Decision = {
@@ -94,9 +94,9 @@ export default function AnalyzePage() {
             {report.decisions.map((item, index) => (
               <li key={`${item.street}-${item.seat}-${index}`}>
                 <button type="button" onClick={() => setSelected(index)}>
-                  {t(item.street)} {item.position} {t(item.action)}
+                  {t(item.street)} {t(item.position)} {t(item.action)}
                   {item.severity ? ` · ${t(item.severity)}` : ""}
-                  {item.metadata?.label ? ` · ${item.metadata.label}` : ""}
+                  {item.metadata?.label ? ` · ${t(item.metadata.label)}` : ""}
                 </button>
               </li>
             ))}
@@ -114,13 +114,13 @@ function DecisionView({ decision }: { decision: Decision }) {
   return (
     <div data-testid="decision-detail">
       <p className="meta">
-        {decision.metadata?.label} · {t("Pot")} {decision.table.pot} · {decision.table.board.join(" ")}
+        {decision.metadata?.label ? t(decision.metadata.label) : ""} · {t("Pot")} {decision.table.pot} · {decision.table.board.join(" ")}
       </p>
       <ul className="seats">
         {decision.table.players.map((player) => (
           <li className="seat" key={player.seat}>
             <strong>
-              {player.nickname} {player.position}
+              {displayName(player.nickname, t)} {t(player.position)}
             </strong>
             <div>{t("Stack")} {player.stack}</div>
           </li>

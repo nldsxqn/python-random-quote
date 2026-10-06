@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import PokerTable from "@/components/PokerTable";
-import { useI18n } from "@/lib/i18n";
+import { displayName, useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
 type HandSummary = {
@@ -184,7 +184,7 @@ export default function ReplayPage() {
                 }}
               >
                 #{hand.id} {hand.small_blind}/{hand.big_blind}{" "}
-                {hand.players.map((player) => player.nickname).join(", ")}
+                {hand.players.map((player) => displayName(player.nickname, t)).join(", ")}
               </button>
             </li>
           ))}
