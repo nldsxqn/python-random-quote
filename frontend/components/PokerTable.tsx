@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
 
@@ -28,39 +28,75 @@ export type TableProps = {
   heroSeat: number | null;
   players: TableSeat[];
   showdown?: boolean;
+  seatCount?: number | null;
+  layout?: "screen" | "embedded";
 };
 
-const RED_SUITS = new Set(["h", "d"]);
+const SUITS: Record<string, string> = { s: "♠", h: "♥", d: "♦", c: "♣" };
 
-export function PlayingCard({ code }: { code: string }) {
-  const suit = code.slice(-1).toLowerCase();
+export function PlayingCard({ code, hero = false }: { code: string; hero?: boolean }) {
+  const rankChar = code[0]?.toUpperCase() ?? "";
+  const suitKey = code.slice(-1).toLowerCase();
+  const red = suitKey === "h" || suitKey === "d";
+  const rank = rankChar === "T" ? "10" : rankChar;
+  const suit = SUITS[suitKey] ?? suitKey;
   return (
-    <span className={RED_SUITS.has(suit) ? "playing-card red" : "playing-card"} data-card={code}>
-      {code}
+    <span
+      className={`playing-card${red ? " red" : ""}${hero ? " hero-card" : ""}`}
+      data-card={code}
+      aria-label={code}
+    >
+      <span className="pip">
+        {rank}
+        <small>{suit}</small>
+      </span>
+      <span className="suit-big">{suit}</span>
+      <span className="code">{code}</span>
     </span>
   );
 }
 
-export function CardBack() {
-  return <span className="playing-card back" aria-hidden="true" />;
+export function CardBack({ hero = false }: { hero?: boolean }) {
+  return <span className={`playing-card back${hero ? " hero-card" : ""}`} aria-hidden="true" />;
+}
+
+export function ChipStack({ amount, testId }: { amount: number; testId?: string }) {
+  const layers = amount >= 100 ? 4 : amount >= 20 ? 3 : amount >= 5 ? 2 : 1;
+  return (
+    <span className="chip-stack" data-testid={testId}>
+      {Array.from({ length: layers }, (_, index) => (
+        <span className={`chip tone-${index % 4}`} key={index} />
+      ))}
+      <span className="chip-amount">{amount}</span>
+    </span>
+  );
 }
 
 export default function PokerTable(props: TableProps) {
   const { t } = useI18n();
-  const seconds = useCountdown(props.remainingSeconds, props.actorSeat ?? null);
-  const seated = ring(props.players, props.heroSeat);
+  const clock = useCountdown(props.remainingSeconds, props.actorSeat ?? null);
+  const occupied = Math.max(props.seatCount ?? 6, ...props.players.map((player) => player.seat + 1), 2);
+  const anchor = props.heroSeat !== null && props.heroSeat < occupied ? props.heroSeat : 0;
+  const bySeat = new Map(props.players.map((player) => [player.seat, player]));
   const live = Boolean(props.street && props.street !== "WAITING" && props.street !== "HAND_COMPLETE");
+  const slots = Array.from({ length: occupied }, (_, seat) => seat);
 
   return (
-    <div className="table-scene" data-testid="poker-table">
+    <div
+      className={props.layout === "embedded" ? "table-scene embedded" : "table-scene"}
+      data-testid="poker-table"
+      data-seats={occupied}
+    >
+      <div className="wood-rail" />
       <div className="felt-oval" />
       <div className="table-center">
-        {props.handNumber != null ? (
-          <p className="table-note" data-testid="hand-number">
-            {t("Hand")} {props.handNumber}
-          </p>
-        ) : null}
         <p className="table-note" data-testid="hand-status">
+          {props.handNumber != null ? (
+            <span data-testid="hand-number">
+              {t("Hand")} {props.handNumber}
+            </span>
+          ) : null}
+          {props.handNumber != null ? " · " : ""}
           {t(props.street ?? "WAITING")}
         </p>
         {props.boards && props.boards.length > 1 ? (
@@ -83,52 +119,69 @@ export default function PokerTable(props: TableProps) {
             ))}
           </div>
         )}
-        <p className="pot-chip" data-testid="pot">
-          {t("Pot")} {props.pot}
-        </p>
+        <div className="pot-row">
+          <ChipStack amount={props.pot} />
+          <p className="pot-chip" data-testid="pot">
+            {t("Pot")} {props.pot}
+          </p>
+        </div>
       </div>
-      {seated.map((player, index) => {
+      {slots.map((seat) => {
+        const player = bySeat.get(seat) ?? null;
+        const place = slotStyle(seat, occupied, anchor);
+        if (!player) {
+          return (
+            <div className="table-seat empty" key={`empty-${seat}`} style={place}>
+              <span className="empty-seat" aria-label={t("Empty seat")} />
+            </div>
+          );
+        }
         const hero = props.heroSeat !== null && player.seat === props.heroSeat;
         const cards = holeCards(player, live, Boolean(props.showdown));
+        const bet = player.committed_street ?? 0;
+        const acting = Boolean(player.is_actor && clock.left !== null && clock.total > 0);
         return (
+          <Fragment key={player.seat}>
+            {bet > 0 ? (
+              <div className="bet-spot" style={betStyle(seat, occupied, anchor)}>
+                <ChipStack amount={bet} testId="seat-bet" />
+              </div>
+            ) : null}
           <div
             className="table-seat"
             data-actor={player.is_actor ? "true" : "false"}
             data-hero={hero ? "true" : "false"}
             data-seat={player.seat}
-            key={player.seat}
-            style={seatStyle(index, seated.length)}
+            style={place}
           >
             <div className="seat-cards" data-testid={hero ? "hole-cards" : undefined}>
               {cards.kind === "faces"
-                ? cards.codes.map((code) => <PlayingCard code={code} key={code} />)
+                ? cards.codes.map((code) => <PlayingCard code={code} hero={hero} key={code} />)
                 : null}
               {cards.kind === "backs" ? (
                 <>
-                  <CardBack />
-                  <CardBack />
+                  <CardBack hero={hero} />
+                  <CardBack hero={hero} />
                 </>
               ) : null}
             </div>
             <div className="seat-plate">
-              <span className="avatar" aria-hidden="true">
-                {player.nickname.slice(0, 1) || "?"}
-              </span>
-              <div className="seat-copy">
-                <strong>{player.nickname}</strong>
-                <div>
-                  {t("Stack")} {player.stack}
-                </div>
-                <div data-testid="seat-bet">
-                  {t("Current bet")} {player.committed_street ?? 0}
-                </div>
-                {player.is_actor && seconds !== null ? (
-                  <div className="action-timer" data-testid="action-timer">
-                    {seconds}s
-                  </div>
+              <span className={`avatar${acting ? " timing" : ""}`}>
+                {acting ? <TimerRing left={clock.left ?? 0} total={clock.total} /> : null}
+                <span aria-hidden="true">{player.nickname.slice(0, 1) || "?"}</span>
+                {acting ? (
+                  <span className="action-timer" data-testid="action-timer">
+                    {clock.left}s
+                  </span>
                 ) : null}
-              </div>
-              <div className="seat-marks">
+              </span>
+              <span className="seat-copy">
+                <strong>{player.nickname}</strong>
+                <span>
+                  {t("Stack")} {player.stack}
+                </span>
+              </span>
+              <span className="seat-marks">
                 {player.seat === props.buttonSeat ? (
                   <span className="dealer-button" data-testid="dealer-button">
                     {t("D")}
@@ -140,16 +193,36 @@ export default function PokerTable(props: TableProps) {
                   </span>
                 ) : null}
                 {player.seat === props.bigBlindSeat ? (
-                  <span className="blind-mark" data-testid="seat-bb">
+                  <span className="blind-mark bb" data-testid="seat-bb">
                     {t("BB")}
                   </span>
                 ) : null}
-              </div>
+              </span>
             </div>
           </div>
+          </Fragment>
         );
       })}
     </div>
+  );
+}
+
+function TimerRing({ left, total }: { left: number; total: number }) {
+  const radius = 18;
+  const length = 2 * Math.PI * radius;
+  const fraction = total <= 0 ? 0 : Math.max(0, Math.min(1, left / total));
+  return (
+    <svg className="timer-ring" viewBox="0 0 44 44" aria-hidden="true">
+      <circle className="timer-track" cx="22" cy="22" r={radius} />
+      <circle
+        className="timer-left"
+        cx="22"
+        cy="22"
+        r={radius}
+        strokeDasharray={length}
+        strokeDashoffset={length * (1 - fraction)}
+      />
+    </svg>
   );
 }
 
@@ -171,29 +244,32 @@ function holeCards(
   return { kind: "backs" };
 }
 
-function ring(players: TableSeat[], heroSeat: number | null): TableSeat[] {
-  if (players.length === 0) {
-    return [];
-  }
-  const ordered = [...players].sort((left, right) => left.seat - right.seat);
-  const anchor = heroSeat ?? ordered[0].seat;
-  const start = ordered.findIndex((player) => player.seat === anchor);
-  const at = start < 0 ? 0 : start;
-  return [...ordered.slice(at), ...ordered.slice(0, at)];
+function slotStyle(seat: number, count: number, anchor: number): { left: string; top: string } {
+  const index = (seat - anchor + count) % count;
+  const angle = Math.PI / 2 + (2 * Math.PI * index) / count;
+  return point(angle, 44, 40);
 }
 
-function seatStyle(index: number, count: number): { left: string; top: string } {
-  const angle = Math.PI / 2 + (2 * Math.PI * index) / Math.max(count, 1);
-  const x = 50 + 38 * Math.cos(angle);
-  const y = 50 + 34 * Math.sin(angle);
-  return { left: `${x}%`, top: `${y}%` };
+function betStyle(seat: number, count: number, anchor: number): { left: string; top: string } {
+  const index = (seat - anchor + count) % count;
+  const angle = Math.PI / 2 + (2 * Math.PI * index) / count;
+  return point(angle, 26, 22);
 }
 
-function useCountdown(remaining: number | null, actor: number | null): number | null {
+function point(angle: number, rx: number, ry: number): { left: string; top: string } {
+  return {
+    left: `${50 + rx * Math.cos(angle)}%`,
+    top: `${50 + ry * Math.sin(angle)}%`,
+  };
+}
+
+function useCountdown(remaining: number | null, actor: number | null): { left: number | null; total: number } {
   const [left, setLeft] = useState<number | null>(remaining);
+  const [total, setTotal] = useState(remaining ?? 0);
 
   useEffect(() => {
     setLeft(remaining);
+    setTotal(remaining ?? 0);
     if (remaining === null) {
       return;
     }
@@ -203,5 +279,5 @@ function useCountdown(remaining: number | null, actor: number | null): number | 
     return () => window.clearInterval(timer);
   }, [remaining, actor]);
 
-  return left;
+  return { left, total };
 }

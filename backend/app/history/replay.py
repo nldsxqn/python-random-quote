@@ -239,6 +239,7 @@ def _state(
         "small_blind_seat": hand.sb_seat,
         "big_blind_seat": hand.bb_seat,
         "hand_number": hand.id,
+        "seat_count": _seat_count(hand),
         "action": _step_action(step, loaded),
         "players": [
             {
@@ -253,6 +254,14 @@ def _state(
         "jumps": _jumps(steps, hand.showdown),
         "showdown": reveal,
     }
+
+
+def _seat_count(hand: Hand) -> int | None:
+    settings = hand.table_settings if isinstance(hand.table_settings, dict) else {}
+    seats = settings.get("seats")
+    if isinstance(seats, bool) or not isinstance(seats, int) or seats < 2:
+        return None
+    return seats
 
 
 def _seat_progress(

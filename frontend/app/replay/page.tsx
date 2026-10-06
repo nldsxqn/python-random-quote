@@ -42,6 +42,7 @@ type ReplayState = {
   small_blind_seat?: number | null;
   big_blind_seat?: number | null;
   hand_number?: number | null;
+  seat_count?: number | null;
   action: { action: string; street: string; seat: number | null; amount: number | null; put_in?: number } | null;
   players: ReplayPlayer[];
   jumps: { flop: number | null; turn: number | null; river: number | null; showdown: number | null };
@@ -66,6 +67,11 @@ export default function ReplayPage() {
   const [state, setState] = useState<ReplayState | null>(null);
   const [autoplay, setAutoplay] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    document.body.classList.add("table-room");
+    return () => document.body.classList.remove("table-room");
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -203,6 +209,8 @@ export default function ReplayPage() {
             heroSeat={viewer}
             players={state.players}
             showdown={state.showdown}
+            seatCount={state.seat_count}
+            layout="embedded"
           />
           <div className="row">
             <button

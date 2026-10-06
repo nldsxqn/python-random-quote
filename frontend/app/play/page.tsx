@@ -88,6 +88,7 @@ export default function PlayPage() {
   const [error, setError] = useState("");
   const [amount, setAmount] = useState("");
   const [buyInAmount, setBuyInAmount] = useState("1000");
+  const [menuOpen, setMenuOpen] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const suggestedBuyIn = view ? defaultBuyIn(view.settings.rules, view.settings.big_blind) : 1000;
   const buyLimits = view ? buyInBounds(view.settings.rules, view.settings.big_blind) : null;
@@ -95,6 +96,11 @@ export default function PlayPage() {
   useEffect(() => {
     setBuyInAmount(String(suggestedBuyIn));
   }, [suggestedBuyIn]);
+
+  useEffect(() => {
+    document.body.classList.add("table-room");
+    return () => document.body.classList.remove("table-room");
+  }, []);
 
   useEffect(() => {
     const saved = window.sessionStorage.getItem(STORAGE_KEY);
@@ -266,44 +272,47 @@ export default function PlayPage() {
 
   const legal = view?.game.legal_actions ?? [];
   const street = view?.game.street ?? "WAITING";
+  const heroPlayer = view?.players.find((player) => player.seat === view.you.seat) ?? null;
+  const sizeMode = legal.includes("raise") && !legal.includes("bet") ? "raise" : legal.includes("bet") ? "bet" : "";
+  const sizeMin = sizeMode === "raise" ? (view?.game.min_raise_to ?? view?.game.big_blind ?? 2) : (view?.game.big_blind ?? 2);
+  const sizeMax = heroPlayer
+    ? Math.max(sizeMin, sizeMode === "raise" ? heroPlayer.committed_street + heroPlayer.stack : heroPlayer.stack)
+    : sizeMin;
+  const sliderValue = clampSize(amount, sizeMin, sizeMax);
+
+  useEffect(() => {
+    if (!sizeMode) {
+      return;
+    }
+    setAmount(String(sizeMin));
+  }, [sizeMode, sizeMin, view?.game.actor_seat, view?.game.hand_number]);
 
   return (
-    <main className="play">
-      <h1>OpenPokerLab</h1>
-      <p className="note">
-        <Link href="/">{t("Home")}</Link>
-        {" · "}
-        <Link href={view ? `/replay?room=${view.room_id}` : "/replay"} data-testid="replay-link">
-          {t("Replay")}
-        </Link>
-        {" · "}
-        <Link href="/analyze" data-testid="analyze-link">
-          {t("Analyze")}
-        </Link>
-        {" · "}
-        <Link href="/trainer" data-testid="trainer-link">
-          {t("Trainer")}
-        </Link>
-        {" · "}
-        <Link href="/settings" data-testid="settings-link">
-          {t("Settings")}
-        </Link>
-      </p>
+    <main className="room-screen">
       {view ? (
-        <section className="table-panel" aria-label={t("Table")}>
-          <p className="meta">
-            {t("Invite")} <strong data-testid="room-invite">{view.invite_code}</strong>
-            {" · "}
-            {view.you.nickname}
-            {view.you.is_host ? ` · ${t("host")}` : ""}
-            {view.you.seat === null ? ` · ${t("spectator")}` : ` · ${t("seat")} ${view.you.seat}`}
-            {" · "}
-            {t("blinds")} {view.settings.small_blind}/{view.game.big_blind}
-            {" · "}
-            <span data-testid="rake">{t("Rake")} {view.game.rake}</span>
-            {" · "}
-            <span data-testid="bounty">{t("Bounty")} {view.game.bounty}</span>
-          </p>
+        <>
+          <header className="room-bar">
+            <span className="word">OpenPokerLab</span>
+            <nav className="links">
+              <Link href="/">{t("Home")}</Link>
+              <Link href={`/replay?room=${view.room_id}`} data-testid="replay-link">{t("Replay")}</Link>
+              <Link href="/analyze" data-testid="analyze-link">{t("Analyze")}</Link>
+              <Link href="/trainer" data-testid="trainer-link">{t("Trainer")}</Link>
+              <Link href="/settings" data-testid="settings-link">{t("Settings")}</Link>
+            </nav>
+            <span>
+              {t("Invite")} <strong data-testid="room-invite">{view.invite_code}</strong>
+              {" · "}
+              {t("blinds")} {view.settings.small_blind}/{view.game.big_blind}
+              {" · "}
+              <span data-testid="rake">{t("Rake")} {view.game.rake}</span>
+              {" · "}
+              <span data-testid="bounty">{t("Bounty")} {view.game.bounty}</span>
+            </span>
+            <button type="button" className="menu-toggle" data-testid="table-menu" onClick={() => setMenuOpen(true)}>
+              {t("Table")}
+            </button>
+          </header>
           <PokerTable
             street={view.game.street}
             board={view.game.board}
@@ -317,74 +326,59 @@ export default function PlayPage() {
             actorSeat={view.game.actor_seat}
             heroSeat={view.you.seat}
             players={view.players}
+            seatCount={view.settings.seats}
           />
           <div className="hero-actions">
-            <button type="button" data-testid="fold" disabled={!legal.includes("fold")} onClick={() => sendAction("fold")}>
+            <button type="button" className="act act-fold" data-testid="fold" disabled={!legal.includes("fold")} onClick={() => sendAction("fold")}>
               {t("Fold")}
             </button>
             <button
               type="button"
+              className="act act-primary"
               data-testid="check-call"
               disabled={!legal.includes("check") && !legal.includes("call")}
               onClick={() => sendAction(legal.includes("call") ? "call" : "check")}
             >
               {legal.includes("call") ? `${t("Call")} ${view.game.to_call}` : t("Check")}
             </button>
-            <input
-              data-testid="amount"
-              inputMode="numeric"
-              value={amount}
-              placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-            <button
-              type="button"
-              data-testid={legal.includes("raise") && !legal.includes("bet") ? "raise" : "bet"}
-              disabled={!legal.includes("bet") && !legal.includes("raise")}
-              onClick={() => betOrRaise(legal.includes("raise") && !legal.includes("bet") ? "raise" : "bet")}
-            >
-              {legal.includes("raise") && !legal.includes("bet") ? t("Raise") : t("Bet")}
-            </button>
-            <button
-              type="button"
-              data-testid="all-in"
-              disabled={!legal.includes("all_in")}
-              onClick={() => sendAction("all_in")}
-            >
-              {t("All-in")}
-            </button>
-          </div>
-          {view.you.gto ? (
-            <p className="meta" data-testid="gto-advice">
-              {view.you.gto.message
-                ? t(view.you.gto.message)
-                : Object.entries(view.you.gto.frequencies ?? {})
-                    .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
-                    .join(" · ")}
-            </p>
-          ) : null}
-          {view.you.seat === null || view.you.is_host ? (
-            <div className="row" data-testid="buy-in">
-              <label htmlFor="buy-in-amount">{t("Buy-in")}</label>
+            <div className="size-control">
               <input
-                id="buy-in-amount"
-                data-testid="buy-in-amount"
-                inputMode="numeric"
-                aria-label={t("Buy-in amount")}
-                value={buyInAmount}
-                onChange={(event) => setBuyInAmount(event.target.value)}
+                type="range"
+                min={sizeMin}
+                max={Math.max(sizeMin, sizeMax)}
+                step={1}
+                value={sliderValue}
+                disabled={!sizeMode}
+                aria-label={sizeMode === "raise" ? t("Raise") : t("Bet")}
+                onChange={(event) => setAmount(event.target.value)}
               />
-              <span className="meta">
-                {buyLimits
-                  ? `${t("Limit")} ${buyLimits.min}–${buyLimits.max} ${t("chips")}`
-                  : `1000 ${t("play-money chips")}`}
-              </span>
-            </div>
-          ) : null}
-          {view.you.seat === null ? (
-            <div className="row">
+              <input
+                data-testid="amount"
+                inputMode="numeric"
+                value={amount}
+                disabled={!sizeMode}
+                placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
+                onChange={(event) => setAmount(event.target.value)}
+              />
               <button
                 type="button"
+                className="act act-raise"
+                data-testid={sizeMode === "raise" ? "raise" : "bet"}
+                disabled={!sizeMode}
+                onClick={() => betOrRaise(sizeMode === "raise" ? "raise" : "bet")}
+              >
+                {sizeMode === "raise" ? t("Raise") : t("Bet")} {sliderValue}
+              </button>
+            </div>
+            {legal.includes("all_in") ? (
+              <button type="button" className="act act-allin" data-testid="all-in" onClick={() => sendAction("all_in")}>
+                {t("All-in")}
+              </button>
+            ) : null}
+            {view.you.seat === null ? (
+              <button
+                type="button"
+                className="act act-primary"
                 data-testid="sit"
                 onClick={() => {
                   const chips = readBuyIn();
@@ -395,46 +389,111 @@ export default function PlayPage() {
               >
                 {t("Sit")}
               </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           {view.game.rit_offer && view.you.seat !== null && view.game.rit_seats.includes(view.you.seat) ? (
-            <div className="row" data-testid="rit-offer">
-              <button type="button" data-testid="rit-yes" onClick={() => sendVote(true)}>
+            <div className="hero-actions" data-testid="rit-offer">
+              <button type="button" className="act act-primary" data-testid="rit-yes" onClick={() => sendVote(true)}>
                 {t("Run it twice")}
               </button>
-              <button type="button" data-testid="rit-no" onClick={() => sendVote(false)}>
+              <button type="button" className="act act-fold" data-testid="rit-no" onClick={() => sendVote(false)}>
                 {t("Run once")}
               </button>
             </div>
           ) : null}
-          {view.you.is_host ? (
-            <HostControls
-              paused={view.settings.paused}
-              inHand={street !== "WAITING" && street !== "HAND_COMPLETE" && street !== null}
-              onStart={() => void post("/start")}
-              onPause={() => void post("/pause", { paused: !view.settings.paused })}
-              onBlinds={(small, big) => void post("/settings", { small_blind: small, big_blind: big })}
-              onRules={(rules) => void post("/settings", { rules })}
-              pending={view.settings.pending_rules !== null}
-              players={view.players}
-              onAddBot={(kind) => {
-                const chips = readBuyIn();
-                if (chips !== null) {
-                  void post("/bots", { kind, amount: chips });
-                }
-              }}
-              onRemoveBot={(seat) => void post("/bots/remove", { seat })}
-              gtoMode={view.settings.gto_mode ?? "competitive"}
-              onGto={(mode) => void post("/settings", { gto_mode: mode })}
-            />
-          ) : null}
           <ChatStrip />
-          <p className="error" data-testid="error">
-            {t(error)}
-          </p>
-        </section>
+          <p className="room-error error" data-testid="error">{t(error)}</p>
+          {menuOpen ? (
+            <>
+              <button type="button" className="slide-scrim" aria-label={t("Close")} onClick={() => setMenuOpen(false)} />
+              <aside className="slide-over" data-testid="table-menu-panel">
+                <div className="row">
+                  <button type="button" onClick={() => setMenuOpen(false)}>{t("Close")}</button>
+                  <span>
+                    {view.you.nickname}
+                    {view.you.is_host ? ` · ${t("host")}` : ""}
+                    {view.you.seat === null ? ` · ${t("spectator")}` : ` · ${t("seat")} ${view.you.seat}`}
+                  </span>
+                </div>
+                {view.you.gto ? (
+                  <p className="meta" data-testid="gto-advice">
+                    {view.you.gto.message
+                      ? t(view.you.gto.message)
+                      : Object.entries(view.you.gto.frequencies ?? {})
+                          .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
+                          .join(" · ")}
+                  </p>
+                ) : null}
+                {view.you.seat === null || view.you.is_host ? (
+                  <div className="row" data-testid="buy-in">
+                    <label htmlFor="buy-in-amount">{t("Buy-in")}</label>
+                    <input
+                      id="buy-in-amount"
+                      data-testid="buy-in-amount"
+                      inputMode="numeric"
+                      aria-label={t("Buy-in amount")}
+                      value={buyInAmount}
+                      onChange={(event) => setBuyInAmount(event.target.value)}
+                    />
+                    <span className="meta">
+                      {buyLimits
+                        ? `${t("Limit")} ${buyLimits.min}–${buyLimits.max} ${t("chips")}`
+                        : `1000 ${t("play-money chips")}`}
+                    </span>
+                    {view.you.seat === null ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chips = readBuyIn();
+                          if (chips !== null) {
+                            void post("/sit", { amount: chips });
+                          }
+                        }}
+                      >
+                        {t("Sit")}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {view.you.is_host ? (
+                  <HostControls
+                    paused={view.settings.paused}
+                    inHand={street !== "WAITING" && street !== "HAND_COMPLETE" && street !== null}
+                    onStart={() => void post("/start")}
+                    onPause={() => void post("/pause", { paused: !view.settings.paused })}
+                    onBlinds={(small, big) => void post("/settings", { small_blind: small, big_blind: big })}
+                    onRules={(rules) => void post("/settings", { rules })}
+                    pending={view.settings.pending_rules !== null}
+                    players={view.players}
+                    onAddBot={(kind) => {
+                      const chips = readBuyIn();
+                      if (chips !== null) {
+                        void post("/bots", { kind, amount: chips });
+                      }
+                    }}
+                    onRemoveBot={(seat) => void post("/bots/remove", { seat })}
+                    gtoMode={view.settings.gto_mode ?? "competitive"}
+                    onGto={(mode) => void post("/settings", { gto_mode: mode })}
+                  />
+                ) : null}
+              </aside>
+            </>
+          ) : null}
+        </>
       ) : (
-        <section className="lobby">
+        <section className="lobby-card">
+          <h1>OpenPokerLab</h1>
+          <p className="note">
+            <Link href="/">{t("Home")}</Link>
+            {" · "}
+            <Link href="/replay">{t("Replay")}</Link>
+            {" · "}
+            <Link href="/analyze">{t("Analyze")}</Link>
+            {" · "}
+            <Link href="/trainer">{t("Trainer")}</Link>
+            {" · "}
+            <Link href="/settings">{t("Settings")}</Link>
+          </p>
           <label htmlFor="nickname">{t("Nickname")}</label>
           <input
             id="nickname"
@@ -460,13 +519,19 @@ export default function PlayPage() {
               {t("Join room")}
             </button>
           </div>
-          <p className="error" data-testid="error">
-            {t(error)}
-          </p>
+          <p className="error" data-testid="error">{t(error)}</p>
         </section>
       )}
     </main>
   );
+}
+
+function clampSize(value: string, min: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, Math.round(parsed)));
 }
 
 function ChatStrip() {

@@ -73,6 +73,8 @@ const zh: Record<string, string> = {
   "All-in": "全下",
   Chat: "聊天",
   "No messages": "没有消息",
+  Close: "关闭",
+  "Empty seat": "空位",
   "Auto top-up": "自动补码",
   "Top-up threshold": "补码门槛",
   "Top-up target": "补码目标",
