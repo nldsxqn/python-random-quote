@@ -222,7 +222,7 @@ async def room_socket(websocket: WebSocket) -> None:
 
     await websocket.send_json(hub.service.joined_message(room, member))
     await websocket.send_json(
-        {"type": "GAME_STATE", "payload": hub.service.player_view(room, member)}
+        {"type": "GAME_STATE", "payload": hub.service.view(member.token)}
     )
     if reconnected:
         async with hub.lock:

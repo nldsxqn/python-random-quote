@@ -3,8 +3,8 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from app.solver.approx import approximate_mix
 from app.solver.jobs import AnalysisStore
-from app.solver.live import MULTIWAY_MESSAGE
 from app.solver.mccfr import MccfrSolverAdapter
 from app.solver.mock import MockSolverAdapter
 from app.solver.reference import ReferenceSolverAdapter
@@ -43,19 +43,6 @@ def solver_health(adapter: str = "mock") -> dict:
 
 @router.post("/solver/solve")
 def solve_spot(body: SolveBody, request: Request) -> dict:
-    if body.during_hand and body.player_count >= 3:
-        payload = {
-            "message": MULTIWAY_MESSAGE,
-            "metadata": {
-                "solver": "reference",
-                "label": "unavailable",
-                "exact": False,
-                "available": False,
-                "reason": "multiway",
-            },
-        }
-        _persist(request, None, payload, body)
-        return payload
     if body.during_hand and body.mode != "study":
         payload = {
             "message": "Competitive mode hides the mix during the hand.",
@@ -68,6 +55,21 @@ def solve_spot(body: SolveBody, request: Request) -> dict:
                 "mode": "competitive",
             },
         }
+        _persist(request, None, payload, body)
+        return payload
+    if body.during_hand and body.player_count >= 3:
+        payload = approximate_mix(
+            hero_cards=_hero_cards(body.hero_range),
+            board=[part for part in body.board.split() if part],
+            pot=body.pot,
+            to_call=_posted_call(body.action_history),
+            street=_street_name(body.board),
+            position=body.hero_position,
+            action_history=list(body.action_history),
+            legal_actions=[],
+            player_count=body.player_count,
+            effective_stack=body.effective_stack,
+        )
         _persist(request, None, payload, body)
         return payload
     spot = SolveRequest(
@@ -104,6 +106,36 @@ def _adapter(name: str):
     if name == "zeta":
         return ZetaAdapter()
     raise HTTPException(status_code=400, detail="unknown solver adapter")
+
+
+def _hero_cards(hero_range: str) -> list[str]:
+    raw = hero_range.replace(",", " ").split()
+    cards = [part for part in raw if len(part) == 2]
+    if len(cards) >= 2:
+        return cards[:2]
+    compact = hero_range.replace(" ", "")
+    if len(compact) == 4:
+        return [compact[:2], compact[2:]]
+    return []
+
+
+def _posted_call(history: list) -> int:
+    if not history:
+        return 0
+    last = history[-1]
+    if not isinstance(last, dict):
+        return 0
+    if str(last.get("action", "")) not in {"bet", "raise", "all_in"}:
+        return 0
+    amount = last.get("to_call", last.get("amount"))
+    if isinstance(amount, bool) or not isinstance(amount, int) or amount <= 0:
+        return 0
+    return amount
+
+
+def _street_name(board: str) -> str:
+    count = len([part for part in board.split() if part])
+    return {0: "PREFLOP", 3: "FLOP", 4: "TURN", 5: "RIVER"}.get(count, "PREFLOP")
 
 
 def _persist(request: Request, spot: SolveRequest | None, payload: dict, body: SolveBody) -> None:

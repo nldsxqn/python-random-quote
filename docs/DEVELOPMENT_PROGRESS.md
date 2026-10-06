@@ -168,8 +168,8 @@ cd /workspace/backend
 - `ReferenceSolverAdapter` enumerates a heads-up river (check, bet sizes, or fold/call) with vanilla CFR. `metadata.exact` may be true. The label is `heads-up one-decision`, never Exact GTO
 - Flop and turn use Monte Carlo equity inside that same tree and set `metadata.exact` false
 - Multiway and preflop return `available: false` and `exact: false`
-- Study mode can put the mix on `you.gto` for a human during a heads-up postflop hand. Competitive mode is the default and omits it. Bots still use `player_view`
-- Three or more dealt players in study mode during a hand get exactly: `Real-time multiway GTO analysis is not available. Post-hand analysis will be available after the hand.`
+- On the hero's turn, competitive and study mode both put a mix on `you.gto`. Heads-up postflop can still use the one-decision solver. Multiway and preflop use a fast approximation with `exact` false. Bots still use `player_view` and do not see the mix
+- The live multiway sentence is no longer returned. The visible Chinese label for the approximation is 近似频率，不是精确 GTO
 - `GET /solver/health` and `POST /solver/solve`. The solve route writes `analysis_jobs` and `decision_analysis`. Alembic revision `analysis_002`
 - `/play` has a host control for competitive / study
 

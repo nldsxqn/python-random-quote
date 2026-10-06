@@ -69,9 +69,9 @@ Phase 6 增加 `backend/app/solver/`。`SolverAdapter.solve_spot` 接收一个�
 
 - **MockSolverAdapter**：固定的假混合，metadata 标明 `mock`。给测试和界面用，不是策略。
 - **ReferenceSolverAdapter**：只解单挑、翻后、一个决策。河牌枚举给定范围，解过牌、下注尺度、以及面对下注时的弃牌和跟注，metadata.`exact` 为真，标签是 `heads-up one-decision`。翻牌和转牌在同一棵树里用蒙特卡洛胜率，`exact` 为假。多人或者翻前不会被标成精确 GTO。结果里不会出现 “Exact GTO”。
-- **学习模式**可以在牌局里给英雄看混合。**竞技模式是默认**，牌局进行中不给混合。一手结束后可以分析。三人及以上进行中的牌局只显示这句话：`Real-time multiway GTO analysis is not available. Post-hand analysis will be available after the hand.`
-- 机器人仍然只看玩家观察，看不到 GTO。显式的 `POST /solver/solve` 会把任务写进 `analysis_jobs` 和 `decision_analysis`。轮询牌桌不会写这些表。
-- `/play` 上房主可以在竞技模式和学习模式之间切换。学习模式才出现 `gto-advice`。
+- 轮到英雄时，竞技模式和学习模式都会在动作条旁边给出每个合法动作的频率。单挑翻后仍用原来的一手决策求解，标签是 `heads-up one-decision`，只有原来标成精确的情况才 `exact`。三人及以上，或者翻前，用快速近似：从观察到的动作推断对手范围，小规模蒙特卡洛估算权益，再映射成混合。`metadata.exact` 为假，中文标签是「近似频率，不是精确 GTO」。不会写成 Exact GTO。
+- 机器人仍然只看玩家观察，看不到这个混合。显式的 `POST /solver/solve` 会把任务写进 `analysis_jobs` 和 `decision_analysis`。轮询牌桌不会写这些表。竞技模式调用这个接口时，牌局进行中仍不返回频率。
+- `/play` 上房主可以在竞技模式和学习模式之间切换。轮到英雄时，两种模式都在牌面上显示频率。
 
 `GET /solver/health` 和 `POST /solver/solve` 是求解接口。迁移 `analysis_002` 给分析表加了可空列。
 

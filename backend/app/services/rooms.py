@@ -721,11 +721,13 @@ class RoomService:
     def _attach_study(self, room: Room, member: Member, payload: dict) -> None:
         if member.bot is not None:
             return
+        game = room.game
+        stacks = [] if game is None else [game.players[seat].stack for seat in game.in_hand]
         advice = study_advice(
             mode=room.gto_mode,
             in_hand=self._in_hand(room),
-            player_count=0 if room.game is None else len(room.game.in_hand),
-            street=None if room.game is None else room.game.street.value,
+            player_count=0 if game is None else len(game.in_hand),
+            street=None if game is None else game.street.value,
             board=payload["game"]["board"],
             pot=payload["game"]["pot"],
             effective_stack=_effective_stack(room, member),
@@ -733,6 +735,12 @@ class RoomService:
             hero_position=payload["you"]["position"] or "",
             to_call=payload["game"]["to_call"],
             cache=room.gto_cache,
+            legal_actions=payload["game"]["legal_actions"],
+            action_history=payload["game"]["action_history"],
+            dealt_count=0 if game is None else len(room.engine_seats),
+            is_actor=member.seat is not None and member.seat == payload["game"]["actor_seat"],
+            hero_seat=member.seat,
+            stacks=stacks,
         )
         if advice is not None:
             payload["you"]["gto"] = advice

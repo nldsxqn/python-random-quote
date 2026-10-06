@@ -203,6 +203,8 @@ const zh: Record<string, string> = {
   "Real-time multiway GTO analysis is not available. Post-hand analysis will be available after the hand.":
     "多人牌局暂不提供实时 GTO。本手结束后可以做赛后分析。",
   "Preflop is not solved as exact GTO.": "翻牌前不会被标成精确 GTO。",
+  "Approximate frequencies, not exact GTO.": "近似频率，不是精确 GTO",
+  "heads-up one-decision": "单挑一手决策",
   Good: "良好",
   Small: "小",
   Medium: "中",

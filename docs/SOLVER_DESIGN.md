@@ -28,7 +28,7 @@ Vanilla CFR (`ReferenceSolverAdapter`) walks every pair and regret-matches. Vill
 ## What is not exact
 
 - Preflop. The adapters return `available: false` and `exact: false`.
-- More than two players. Real time, the study view says exactly: `Real-time multiway GTO analysis is not available. Post-hand analysis will be available after the hand.` Post-hand review may still show a number, and that number is labeled Approximate Analysis with `exact` false.
+- More than two players. The reference adapter returns `available: false`. During a hand the table still shows a fast approximation (`approximate_mix`): ranges inferred from the action line, a small Monte Carlo equity, then a mix over the legal actions. `metadata.exact` is false and the label is `Approximate frequencies, not exact GTO.` Post-hand review may still show a number labeled Approximate Analysis.
 - Flop and turn Monte Carlo.
 - A truncated range. Ranges longer than 80 combos are cut, and the result is not exact.
 - A raise facing a bet. That action is outside this one-decision tree.
@@ -38,7 +38,7 @@ None of these results are labeled Exact GTO. A river enumeration is a solved one
 
 ## Who sees a mix
 
-Competitive mode is the default. During a hand the human view has no frequencies. Study mode may attach `you.gto` for a human in a heads-up postflop spot. Bots call `player_view` and never receive that object. `POST /solver/solve` is the call that writes `analysis_jobs`. Polling the table does not.
+On the acting player's turn, both competitive and study mode attach `you.gto` for a human, including multiway and preflop. Heads-up postflop may keep the one-decision solver. Competitive mode omits the mix when it is not that player's turn. Bots call `player_view` and never receive that object. `POST /solver/solve` is the call that writes `analysis_jobs`. Polling the table does not. A competitive `during_hand` call to that route still withholds frequencies.
 
 ## Adding another adapter
 

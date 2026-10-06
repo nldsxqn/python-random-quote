@@ -10,8 +10,8 @@ from app.engine.deck import RiggedDeck
 from app.engine.state import Street
 from app.main import app
 from app.services.hub import RoomHub
+from app.solver.approx import APPROX_LABEL, approximate_mix
 from app.solver.jobs import AnalysisStore
-from app.solver.live import MULTIWAY_MESSAGE
 from app.solver.mock import MockSolverAdapter
 from app.solver.ranges import parse_range
 from app.solver.reference import ReferenceSolverAdapter
@@ -126,6 +126,34 @@ def test_facing_a_bet_is_fold_or_call() -> None:
     assert result.metadata["exact"] is True
 
 
+def test_live_mix_changes_with_holding_and_line() -> None:
+    board = ["Kh", "8d", "3c", "2s"]
+    legal = ["check", "bet", "all_in"]
+    shared = {
+        "board": board,
+        "pot": 30,
+        "to_call": 0,
+        "street": "TURN",
+        "position": "BTN",
+        "legal_actions": legal,
+        "player_count": 3,
+        "effective_stack": 180,
+        "hero_seat": 0,
+        "stacks": [180, 160, 140],
+    }
+    pocket = approximate_mix(hero_cards=["As", "Ad"], action_history=_checks(), **shared)
+    offs = approximate_mix(hero_cards=["7c", "2d"], action_history=_checks(), **shared)
+    betting = approximate_mix(hero_cards=["Qc", "Jd"], action_history=_bets(), **shared)
+    checked = approximate_mix(hero_cards=["Qc", "Jd"], action_history=_checks(), **shared)
+    for mix in (pocket, offs, betting, checked):
+        assert abs(sum(mix["frequencies"].values()) - 1) < 1e-6
+        assert mix["metadata"]["exact"] is False
+        assert mix["metadata"]["label"] == APPROX_LABEL
+        assert "Exact GTO" not in json.dumps(mix)
+    assert _apart(pocket["frequencies"], offs["frequencies"])
+    assert _apart(betting["frequencies"], checked["frequencies"])
+
+
 def test_ranges_parse_pairs_and_suited() -> None:
     assert len(parse_range("AA")) == 6
     assert len(parse_range("AKs")) == 4
@@ -158,7 +186,7 @@ def test_study_shows_a_mix_and_competitive_hides_it() -> None:
     assert "gto" not in service.view(host["guest_token"])["you"]
 
 
-def test_multiway_study_uses_the_required_sentence() -> None:
+def test_multiway_hand_returns_frequencies() -> None:
     app.state.hub = RoomHub()
     service = app.state.hub.service
     host = service.create("Alice")
@@ -167,10 +195,27 @@ def test_multiway_study_uses_the_required_sentence() -> None:
     service.sit(host["guest_token"], 0)
     service.sit(bob["guest_token"], 1)
     service.sit(cara["guest_token"], 2)
-    service.update_settings(host["guest_token"], None, None, None, gto_mode="study")
     service.start(host["guest_token"])
-    advice = service.view(host["guest_token"])["you"]["gto"]
-    assert advice == {"message": MULTIWAY_MESSAGE}
+    view = service.view(host["guest_token"])
+    advice = view["you"]["gto"]
+    frequencies = advice["frequencies"]
+    assert abs(sum(frequencies.values()) - 1) < 1e-6
+    assert set(frequencies) == set(view["game"]["legal_actions"])
+    assert advice["metadata"]["exact"] is False
+    assert advice["metadata"]["label"] == APPROX_LABEL
+    blob = json.dumps(view)
+    assert "Real-time multiway GTO analysis is not available" not in blob
+    assert "Exact GTO" not in blob
+    host_seat = view["you"]["seat"]
+    for row in view["players"]:
+        if row["seat"] != host_seat:
+            assert row["hole_cards"] is None
+    assert "deck" not in view
+    service.update_settings(host["guest_token"], None, None, None, gto_mode="study")
+    study = service.view(host["guest_token"])["you"]["gto"]
+    assert study["metadata"]["exact"] is False
+    assert abs(sum(study["frequencies"].values()) - 1) < 1e-6
+    assert "Real-time multiway GTO analysis is not available" not in json.dumps(study)
 
 
 def test_a_bot_observation_has_no_gto() -> None:
@@ -208,8 +253,12 @@ def test_solve_endpoint_persists_and_hides_live_competitive(tmp_path: Path) -> N
             "/solver/solve",
             json={"adapter": "reference", "during_hand": True, "mode": "study", "player_count": 3},
         )
-        assert multi.json()["message"] == MULTIWAY_MESSAGE
-        assert "frequencies" not in multi.json()
+        multi_body = multi.json()
+        assert "frequencies" in multi_body
+        assert abs(sum(multi_body["frequencies"].values()) - 1) < 1e-6
+        assert multi_body["metadata"]["exact"] is False
+        assert "Real-time multiway GTO analysis is not available" not in json.dumps(multi_body)
+        assert "Exact GTO" not in json.dumps(multi_body)
         saved = client.post(
             "/solver/solve",
             json={"adapter": "mock", "mode": "posthand", "hero_range": "AA", "villain_range": "KK"},
@@ -220,6 +269,41 @@ def test_solve_endpoint_persists_and_hides_live_competitive(tmp_path: Path) -> N
     with Session(engine) as session:
         assert session.scalar(select(func.count()).select_from(AnalysisJob)) == 3
         assert session.scalar(select(func.count()).select_from(DecisionAnalysis)) == 3
+
+
+def _apart(left: dict[str, float], right: dict[str, float]) -> bool:
+    keys = set(left) | set(right)
+    return any(abs(left.get(key, 0.0) - right.get(key, 0.0)) > 0.03 for key in keys)
+
+
+def _checks() -> list[dict]:
+    return [
+        {"seat": 1, "street": "FLOP", "action": "check", "amount": None, "raised": False},
+        {"seat": 2, "street": "FLOP", "action": "check", "amount": None, "raised": False},
+    ]
+
+
+def _bets() -> list[dict]:
+    return [
+        {
+            "seat": 1,
+            "street": "FLOP",
+            "action": "bet",
+            "amount": 18,
+            "put_in": 18,
+            "pot_before": 12,
+            "raised": True,
+        },
+        {
+            "seat": 2,
+            "street": "FLOP",
+            "action": "raise",
+            "amount": 48,
+            "pot_before": 30,
+            "raised": True,
+        },
+        {"seat": 1, "street": "FLOP", "action": "call", "amount": None, "raised": False},
+    ]
 
 
 def parse_prefix():

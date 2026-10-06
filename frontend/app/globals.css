@@ -707,6 +707,31 @@ body.table-room a {
   font-variant-numeric: tabular-nums;
 }
 
+.frequency-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+  margin: 0 10% 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(10, 52, 34, 0.94);
+  border: 1px solid rgba(232, 196, 92, 0.55);
+  color: #f6f1e4;
+  font-size: 0.86rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+
+.frequency-label {
+  color: #e8c45c;
+  font-weight: 750;
+}
+
+.frequency-chip {
+  font-variant-numeric: tabular-nums;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;

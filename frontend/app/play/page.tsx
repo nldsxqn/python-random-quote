@@ -328,6 +328,9 @@ export default function PlayPage() {
             players={view.players}
             seatCount={view.settings.seats}
           />
+          {legal.length > 0 && view.you.gto?.frequencies ? (
+            <FrequencyBar gto={view.you.gto} legal={legal} />
+          ) : null}
           <div className="hero-actions">
             <button type="button" className="act act-fold" data-testid="fold" disabled={!legal.includes("fold")} onClick={() => sendAction("fold")}>
               {t("Fold")}
@@ -417,10 +420,11 @@ export default function PlayPage() {
                 </div>
                 {view.you.gto ? (
                   <p className="meta" data-testid="gto-advice">
+                    {view.you.gto.metadata?.label ? `${t(view.you.gto.metadata.label)} · ` : ""}
                     {view.you.gto.message
                       ? t(view.you.gto.message)
                       : Object.entries(view.you.gto.frequencies ?? {})
-                          .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
+                          .map(([action, frequency]) => `${actionName(action, t)} ${Math.round(frequency * 100)}%`)
                           .join(" · ")}
                   </p>
                 ) : null}
@@ -524,6 +528,40 @@ export default function PlayPage() {
       )}
     </main>
   );
+}
+
+function FrequencyBar({
+  gto,
+  legal,
+}: {
+  gto: NonNullable<RoomView["you"]["gto"]>;
+  legal: string[];
+}) {
+  const { t } = useI18n();
+  const frequencies = gto.frequencies ?? {};
+  const matching = legal.filter((action) => action in frequencies);
+  const shown = matching.length > 0 ? matching : Object.keys(frequencies);
+  if (shown.length === 0) {
+    return null;
+  }
+  return (
+    <div className="frequency-bar" data-testid="frequency-bar">
+      {gto.metadata?.label ? <span className="frequency-label">{t(gto.metadata.label)}</span> : null}
+      {shown.map((action) => (
+        <span key={action} className="frequency-chip" data-action={action}>
+          {actionName(action, t)} {Math.round((frequencies[action] ?? 0) * 100)}%
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function actionName(action: string, t: (text: string) => string): string {
+  const sized = /^(bet|raise):(\d+)$/.exec(action);
+  if (sized) {
+    return `${t(sized[1])} ${sized[2]}`;
+  }
+  return t(action);
 }
 
 function clampSize(value: string, min: number, max: number): number {
