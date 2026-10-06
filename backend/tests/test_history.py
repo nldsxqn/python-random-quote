@@ -139,6 +139,14 @@ def test_rigged_hand_round_trips_and_preflop_hides_the_flop(api) -> None:
         ).json()
         assert state["street"] == "PREFLOP"
         assert state["board"] == []
+        if index == 0:
+            assert state["hand_number"] == hand_id
+            assert state["button_seat"] == state["small_blind_seat"]
+            assert state["big_blind_seat"] != state["button_seat"]
+            seats = {row["seat"]: row for row in state["players"]}
+            assert seats[state["small_blind_seat"]]["committed_street"] == 1
+            assert seats[state["big_blind_seat"]]["committed_street"] == 2
+            assert seats[state["big_blind_seat"]]["status"] == "ACTIVE"
         encoded = json.dumps(state)
         for card in live_board:
             assert card not in encoded

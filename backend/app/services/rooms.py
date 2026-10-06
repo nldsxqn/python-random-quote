@@ -91,6 +91,7 @@ class Room:
     levels: list = field(default_factory=lambda: [(1, 2), (2, 4), (5, 10)])
     hands_per_level: int = 5
     hands_played: int = 0
+    hand_number: int = 0
     tournament_winner: str | None = None
 
 
@@ -257,6 +258,7 @@ class RoomService:
             room.game.start_hand()
         except IllegalActionError as exc:
             raise RoomError(str(exc)) from exc
+        room.hand_number += 1
         self._sync_members(room)
         self._capture_opening(room)
         game = room.game
@@ -703,6 +705,7 @@ class RoomService:
                 "top_ups": list(room.hand_top_ups),
                 "action_history": [dict(item) for item in room.hand_history],
                 "insurance": _insurance_view(room, game),
+                "hand_number": room.hand_number or None,
             },
             "you": {
                 "nickname": member.nickname,

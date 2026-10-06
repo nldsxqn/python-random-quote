@@ -213,6 +213,7 @@ def _state(
         runs = [list(item.cards) for item in loaded["boards"]]
         board = list(loaded["boards"][0].cards)
     reveal = step["kind"] == "showdown"
+    bets, statuses = _seat_progress(loaded, steps, index)
     return {
         "hand_id": hand.id,
         "index": index,
@@ -234,17 +235,73 @@ def _state(
         if final
         else [],
         "winners": list(hand.winners) if final else [],
+        "button_seat": hand.button_seat,
+        "small_blind_seat": hand.sb_seat,
+        "big_blind_seat": hand.bb_seat,
+        "hand_number": hand.id,
         "action": _step_action(step, loaded),
         "players": [
             {
                 **_player_view(player, viewer_seat, reveal=reveal),
                 "stack": stacks[player.seat],
+                "committed_street": bets[player.seat],
+                "status": statuses[player.seat],
+                "is_button": player.seat == hand.button_seat,
             }
             for player in loaded["players"]
         ],
         "jumps": _jumps(steps, hand.showdown),
         "showdown": reveal,
     }
+
+
+def _seat_progress(
+    loaded: dict,
+    steps: list[dict],
+    index: int,
+) -> tuple[dict[int, int], dict[int, str]]:
+    """Street bets and fold status from stored posts and actions. The client only displays them."""
+    players: list[HandPlayer] = loaded["players"]
+    bets = {player.seat: player.posted for player in players}
+    status = {
+        player.seat: (
+            "ALL_IN"
+            if player.starting_stack > 0 and player.posted >= player.starting_stack
+            else "ACTIVE"
+        )
+        for player in players
+    }
+    street = steps[0]["street"] if steps else "PREFLOP"
+
+    def apply(item: dict) -> None:
+        nonlocal street
+        if item["kind"] == "deal":
+            for seat in bets:
+                bets[seat] = 0
+            street = item["street"]
+            return
+        if item["kind"] != "action":
+            return
+        action: ActionRow = loaded["actions"][item["action_index"]]
+        if action.street != street:
+            for seat in bets:
+                bets[seat] = 0
+            street = action.street
+        bets[action.seat] = bets.get(action.seat, 0) + int(action.put_in or 0)
+        if action.action == "fold":
+            status[action.seat] = "FOLDED"
+        elif action.action == "all_in":
+            status[action.seat] = "ALL_IN"
+
+    for earlier in steps[:index]:
+        apply(earlier)
+    current = steps[index]
+    if current["kind"] == "deal":
+        apply(current)
+    if current["kind"] in {"showdown", "complete"}:
+        for seat in bets:
+            bets[seat] = 0
+    return bets, status
 
 
 def _step_action(step: dict, loaded: dict) -> dict | None:

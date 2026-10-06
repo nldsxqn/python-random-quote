@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import PokerTable from "@/components/PokerTable";
 import { useI18n } from "@/lib/i18n";
 import { apiUrl } from "@/lib/server-url";
 
@@ -22,9 +23,13 @@ type ReplayPlayer = {
   stack: number;
   hole_cards: string[] | null;
   is_bot: boolean;
+  committed_street?: number;
+  status?: string;
+  is_button?: boolean;
 };
 
 type ReplayState = {
+  hand_id?: number;
   index: number;
   step_count: number;
   street: string;
@@ -33,6 +38,10 @@ type ReplayState = {
   pot: number;
   rake: number;
   bounty: number;
+  button_seat?: number | null;
+  small_blind_seat?: number | null;
+  big_blind_seat?: number | null;
+  hand_number?: number | null;
   action: { action: string; street: string; seat: number | null; amount: number | null; put_in?: number } | null;
   players: ReplayPlayer[];
   jumps: { flop: number | null; turn: number | null; river: number | null; showdown: number | null };
@@ -176,43 +185,25 @@ export default function ReplayPage() {
         </ul>
       </section>
       {state && detail ? (
-        <section className="table felt" aria-label={t("Hand replay")}>
-          <h2 data-testid="replay-street">{t(state.street)}</h2>
-          <p className="meta" data-testid="replay-pot">
-            {t("Pot")} {state.pot}
-            {state.showdown ? ` · ${t("Rake")} ${state.rake} · ${t("Bounty")} ${state.bounty}` : ""}
-          </p>
+        <section className="table-panel" aria-label={t("Hand replay")}>
           <p className="meta" data-testid="replay-action">
             {actionText}
+            {state.showdown ? ` · ${t("Rake")} ${state.rake} · ${t("Bounty")} ${state.bounty}` : ""}
           </p>
-          <div className="cards" data-testid="replay-board">
-            {state.board.length === 0 ? <span className="card">—</span> : null}
-            {state.board.map((card) => (
-              <span className="card" key={card}>
-                {card}
-              </span>
-            ))}
-          </div>
-          {state.boards.length > 1 ? (
-            <div data-testid="replay-runs">
-              {state.boards.map((board, run) => (
-                <p className="meta" key={board.join("-")}>
-                  {t("Run")} {run + 1}: {board.join(" ")}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          <ul className="seats">
-            {state.players.map((player) => (
-              <li className="seat" data-testid="replay-seat" data-seat={player.seat} key={player.seat}>
-                <strong>
-                  {player.nickname} {player.position}
-                </strong>
-                <div>{t("Stack")} {player.stack}</div>
-                <div>{player.hole_cards ? player.hole_cards.join(" ") : t("hidden")}</div>
-              </li>
-            ))}
-          </ul>
+          <PokerTable
+            street={state.street}
+            board={state.board}
+            boards={state.boards}
+            pot={state.pot}
+            buttonSeat={state.button_seat ?? null}
+            smallBlindSeat={state.small_blind_seat ?? null}
+            bigBlindSeat={state.big_blind_seat ?? null}
+            handNumber={state.hand_number ?? state.hand_id ?? null}
+            remainingSeconds={null}
+            heroSeat={viewer}
+            players={state.players}
+            showdown={state.showdown}
+          />
           <div className="row">
             <button
               type="button"

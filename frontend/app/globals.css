@@ -108,9 +108,9 @@ a {
 }
 
 .play {
-  max-width: 52rem;
+  max-width: 68rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: 1.25rem 1.25rem 3rem;
 }
 
 .play h1 {
@@ -291,4 +291,230 @@ button:disabled {
 .study input,
 .study select {
   font: inherit;
+}
+
+.table-panel {
+  margin-top: 1rem;
+}
+
+.table-scene {
+  position: relative;
+  height: 40rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.felt-oval {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 12%;
+  bottom: 12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #3d7a5c 0%, #1f3d32 72%);
+  box-shadow:
+    0 0 0 14px #163028,
+    0 14px 28px rgba(28, 25, 23, 0.16);
+}
+
+.table-center {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  z-index: 1;
+  width: min(22rem, 46%);
+  color: #f5f5f4;
+  text-align: center;
+}
+
+.table-note {
+  margin: 0;
+  color: #e7e5e4;
+  font-size: 0.85rem;
+}
+
+.pot-chip {
+  margin: 0;
+  padding: 0.2rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fafaf9;
+  font-weight: 650;
+}
+
+.board-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 3.4rem;
+}
+
+.playing-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.55rem;
+  height: 3.5rem;
+  border-radius: 6px;
+  background: #fff;
+  color: #1c1917;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.playing-card.red {
+  color: var(--bad);
+}
+
+.playing-card.back {
+  background: repeating-linear-gradient(45deg, #1f3d32, #1f3d32 4px, #163028 4px, #163028 8px);
+  border: 2px solid #f5f5f4;
+  color: transparent;
+  box-shadow: none;
+}
+
+.table-seat {
+  position: absolute;
+  z-index: 2;
+  width: 9.2rem;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.table-seat[data-actor="true"] .seat-plate {
+  outline: 2px solid #fde68a;
+}
+
+.seat-cards {
+  display: flex;
+  gap: 0.25rem;
+  min-height: 1.6rem;
+}
+
+.table-seat[data-hero="true"] .playing-card {
+  width: 3.15rem;
+  height: 4.3rem;
+  font-size: 1.02rem;
+}
+
+.seat-plate {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(250, 250, 249, 0.94);
+  color: var(--ink);
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1f3d32;
+  color: #fafaf9;
+  font-weight: 700;
+}
+
+.seat-copy {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.seat-copy strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat-marks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.dealer-button {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafaf9;
+  color: #1c1917;
+  border: 2px solid #1c1917;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.blind-mark {
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: #1c1917;
+  color: #fafaf9;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.action-timer {
+  color: #a16207;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.hero-actions button,
+.hero-actions input {
+  min-width: 6.5rem;
+}
+
+.chat-strip {
+  margin-top: 0.8rem;
+  max-width: 16rem;
+}
+
+.chat-strip .meta {
+  margin: 0.35rem 0 0;
+}
+
+@media (max-width: 720px) {
+  .table-scene {
+    height: 32rem;
+  }
+
+  .table-seat {
+    width: 7.4rem;
+  }
+
+  .playing-card,
+  .table-seat[data-hero="true"] .playing-card {
+    width: 2.2rem;
+    height: 3rem;
+    font-size: 0.75rem;
+  }
 }

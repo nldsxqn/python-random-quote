@@ -247,6 +247,31 @@ def _connect(stack: ExitStack, client: TestClient, token: str):
     return socket
 
 
+def test_player_view_numbers_the_hand_and_names_the_blinds() -> None:
+    with TestClient(app) as client:
+        alice = _create(client, "Alice")
+        bob = _join(client, alice["invite_code"], "Bob")
+        cara = _join(client, alice["invite_code"], "Cara")
+        _sit(client, alice, 0)
+        _sit(client, bob, 1)
+        _sit(client, cara, 2)
+        before = _state(client, alice)
+        assert before["game"]["hand_number"] is None
+        assert before["game"]["small_blind_seat"] is None
+        assert before["game"]["big_blind_seat"] is None
+        started = client.post(
+            f"/rooms/{alice['room_id']}/start",
+            json={"guest_token": alice["guest_token"]},
+        )
+        assert started.status_code == 200
+        live = _state(client, alice)
+        assert live["game"]["hand_number"] == 1
+        assert live["game"]["button_seat"] == 0
+        assert live["game"]["small_blind_seat"] == 1
+        assert live["game"]["big_blind_seat"] == 2
+        assert live["you"]["hole_cards"] is not None
+
+
 def _until(socket, event_type: str, limit: int = 20) -> list[dict]:
     found: list[dict] = []
     for _ in range(limit):

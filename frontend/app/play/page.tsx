@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import PokerTable from "@/components/PokerTable";
 import { buyInBounds, defaultBuyIn } from "@/lib/buy-in";
 import { useI18n } from "@/lib/i18n";
 import { apiUrl, wsUrl } from "@/lib/server-url";
@@ -51,6 +52,10 @@ type RoomView = {
     rit_seats: number[];
     boards: string[][];
     remaining_seconds: number | null;
+    button_seat: number | null;
+    small_blind_seat: number | null;
+    big_blind_seat: number | null;
+    hand_number: number | null;
   };
   you: {
     nickname: string;
@@ -285,70 +290,79 @@ export default function PlayPage() {
         </Link>
       </p>
       {view ? (
-        <section className="table" aria-label="Poker table">
+        <section className="table-panel" aria-label={t("Table")}>
           <p className="meta">
             {t("Invite")} <strong data-testid="room-invite">{view.invite_code}</strong>
             {" · "}
             {view.you.nickname}
             {view.you.is_host ? ` · ${t("host")}` : ""}
             {view.you.seat === null ? ` · ${t("spectator")}` : ` · ${t("seat")} ${view.you.seat}`}
+            {" · "}
+            {t("blinds")} {view.settings.small_blind}/{view.game.big_blind}
+            {" · "}
+            <span data-testid="rake">{t("Rake")} {view.game.rake}</span>
+            {" · "}
+            <span data-testid="bounty">{t("Bounty")} {view.game.bounty}</span>
           </p>
-          <div className="felt">
-            <h2 data-testid="hand-status">{t(street)}</h2>
-            <p className="meta" data-testid="pot">
-              {t("Pot")} {view.game.pot} · {t("blinds")} {view.settings.small_blind}/{view.game.big_blind}
-            </p>
-            <p className="meta">
-              <span data-testid="rake">{t("Rake")} {view.game.rake}</span>
-              {" · "}
-              <span data-testid="bounty">{t("Bounty")} {view.game.bounty}</span>
-              {view.game.remaining_seconds !== null ? ` · ${view.game.remaining_seconds}s` : ""}
-            </p>
-            {view.game.boards.length > 1 ? (
-              <div data-testid="run-boards">
-                {view.game.boards.map((board, index) => (
-                  <p className="meta" key={board.join("-")}>
-                    {t("Run")} {index + 1}: {board.join(" ")}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <div className="cards" data-testid="board">
-              {view.game.board.length === 0 ? <span className="card">—</span> : null}
-              {view.game.board.map((card) => (
-                <span className="card" key={card}>
-                  {card}
-                </span>
-              ))}
-            </div>
-            <ul className="seats">
-              {view.players.map((player) => (
-                <li className="seat" data-actor={player.is_actor} key={player.seat}>
-                  <strong>
-                    {player.nickname}
-                    {player.is_button ? " (D)" : ""}
-                  </strong>
-                  <div>{t("Stack")} {player.stack}</div>
-                  <div>
-                    {t(player.status)}
-                    {player.committed_street > 0 ? ` · ${player.committed_street}` : ""}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <p data-testid="hole-cards">
-              {t("Your cards")}: {view.you.hole_cards ? view.you.hole_cards.join(" ") : t("hidden")}
-            </p>
-            {view.you.gto ? (
-              <p className="meta" data-testid="gto-advice">
-                {view.you.gto.message
-                  ? t(view.you.gto.message)
-                  : Object.entries(view.you.gto.frequencies ?? {})
-                      .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
-                      .join(" · ")}
-              </p>
-            ) : null}
+          <PokerTable
+            street={view.game.street}
+            board={view.game.board}
+            boards={view.game.boards}
+            pot={view.game.pot}
+            buttonSeat={view.game.button_seat}
+            smallBlindSeat={view.game.small_blind_seat}
+            bigBlindSeat={view.game.big_blind_seat}
+            handNumber={view.game.hand_number}
+            remainingSeconds={view.game.remaining_seconds}
+            actorSeat={view.game.actor_seat}
+            heroSeat={view.you.seat}
+            players={view.players}
+          />
+          <div className="hero-actions">
+            <button type="button" data-testid="fold" disabled={!legal.includes("fold")} onClick={() => sendAction("fold")}>
+              {t("Fold")}
+            </button>
+            <button
+              type="button"
+              data-testid="check-call"
+              disabled={!legal.includes("check") && !legal.includes("call")}
+              onClick={() => sendAction(legal.includes("call") ? "call" : "check")}
+            >
+              {legal.includes("call") ? `${t("Call")} ${view.game.to_call}` : t("Check")}
+            </button>
+            <input
+              data-testid="amount"
+              inputMode="numeric"
+              value={amount}
+              placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+            <button
+              type="button"
+              data-testid={legal.includes("raise") && !legal.includes("bet") ? "raise" : "bet"}
+              disabled={!legal.includes("bet") && !legal.includes("raise")}
+              onClick={() => betOrRaise(legal.includes("raise") && !legal.includes("bet") ? "raise" : "bet")}
+            >
+              {legal.includes("raise") && !legal.includes("bet") ? t("Raise") : t("Bet")}
+            </button>
+            <button
+              type="button"
+              data-testid="all-in"
+              disabled={!legal.includes("all_in")}
+              onClick={() => sendAction("all_in")}
+            >
+              {t("All-in")}
+            </button>
           </div>
+          {view.you.gto ? (
+            <p className="meta" data-testid="gto-advice">
+              {view.you.gto.message
+                ? t(view.you.gto.message)
+                : Object.entries(view.you.gto.frequencies ?? {})
+                    .map(([action, frequency]) => `${t(action)} ${Math.round(frequency * 100)}%`)
+                    .join(" · ")}
+            </p>
+          ) : null}
           {view.you.seat === null || view.you.is_host ? (
             <div className="row" data-testid="buy-in">
               <label htmlFor="buy-in-amount">{t("Buy-in")}</label>
@@ -367,8 +381,8 @@ export default function PlayPage() {
               </span>
             </div>
           ) : null}
-          <div className="actions row">
-            {view.you.seat === null ? (
+          {view.you.seat === null ? (
+            <div className="row">
               <button
                 type="button"
                 data-testid="sit"
@@ -381,31 +395,8 @@ export default function PlayPage() {
               >
                 {t("Sit")}
               </button>
-            ) : null}
-            <button type="button" data-testid="fold" disabled={!legal.includes("fold")} onClick={() => sendAction("fold")}>
-              {t("Fold")}
-            </button>
-            <button type="button" data-testid="check" disabled={!legal.includes("check")} onClick={() => sendAction("check")}>
-              {t("Check")}
-            </button>
-            <button type="button" data-testid="call" disabled={!legal.includes("call")} onClick={() => sendAction("call")}>
-              {t("Call")}
-              {view.game.to_call > 0 ? ` ${view.game.to_call}` : ""}
-            </button>
-            <input
-              data-testid="amount"
-              inputMode="numeric"
-              value={amount}
-              placeholder={view.game.min_raise_to ? `${t("raise to")} ${view.game.min_raise_to}` : t("amount")}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-            <button type="button" data-testid="bet" disabled={!legal.includes("bet")} onClick={() => betOrRaise("bet")}>
-              {t("Bet")}
-            </button>
-            <button type="button" data-testid="raise" disabled={!legal.includes("raise")} onClick={() => betOrRaise("raise")}>
-              {t("Raise")}
-            </button>
-          </div>
+            </div>
+          ) : null}
           {view.game.rit_offer && view.you.seat !== null && view.game.rit_seats.includes(view.you.seat) ? (
             <div className="row" data-testid="rit-offer">
               <button type="button" data-testid="rit-yes" onClick={() => sendVote(true)}>
@@ -437,6 +428,7 @@ export default function PlayPage() {
               onGto={(mode) => void post("/settings", { gto_mode: mode })}
             />
           ) : null}
+          <ChatStrip />
           <p className="error" data-testid="error">
             {t(error)}
           </p>
@@ -474,6 +466,19 @@ export default function PlayPage() {
         </section>
       )}
     </main>
+  );
+}
+
+function ChatStrip() {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="chat-strip" data-testid="chat">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+        {t("Chat")}
+      </button>
+      {open ? <p className="meta">{t("No messages")}</p> : null}
+    </div>
   );
 }
 
