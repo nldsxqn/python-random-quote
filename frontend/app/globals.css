@@ -356,6 +356,27 @@ body.table-room a {
   padding: 0.35rem 0.85rem;
 }
 
+.tool-start {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(#ffe08a, #e2b434);
+  color: #1c1406;
+  font-weight: 800;
+  font-size: 1.02rem;
+  padding: 0.48rem 1.15rem;
+}
+
+.tool-start:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.start-reason {
+  color: #f0c14a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .seat-count {
   display: inline-flex;
   align-items: center;
@@ -389,6 +410,17 @@ body.table-room a {
   flex: 1;
   min-height: 0;
   margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.4rem 0.4rem 2.2rem;
+}
+
+.stadium {
+  position: relative;
+  width: min(100%, 1180px);
+  aspect-ratio: 2.15 / 1;
+  max-height: 100%;
 }
 
 .table-scene.embedded {
@@ -402,42 +434,29 @@ body.table-room a {
 
 .table-rail {
   position: absolute;
-  left: 1.5%;
-  right: 1.5%;
-  top: 1%;
-  bottom: 3%;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse at 50% 40%, #3ec4d4 0%, #1a8b9a 28%, #0e6270 58%, #08414c 100%);
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4fd0de 0%, #1a8b9a 38%, #0c5562 72%, #073843 100%);
   box-shadow:
-    inset 0 16px 20px rgba(255, 255, 255, 0.2),
-    inset 0 -18px 24px rgba(0, 0, 0, 0.4),
-    inset 0 0 0 4px rgba(210, 248, 252, 0.35),
-    0 18px 32px rgba(0, 0, 0, 0.5);
+    inset 0 10px 16px rgba(255, 255, 255, 0.22),
+    inset 0 -14px 18px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 3px rgba(214, 248, 252, 0.35),
+    0 16px 28px rgba(0, 0, 0, 0.45);
 }
 
 .felt-oval {
   position: absolute;
-  left: 13%;
-  right: 13%;
-  top: 14%;
-  bottom: 16%;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse at 50% 42%, #14171c 0%, #050607 72%);
-  box-shadow:
-    inset 0 0 0 10px rgba(0, 0, 0, 0.55),
-    inset 0 18px 30px rgba(0, 0, 0, 0.4);
+  inset: 28px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at 50% 42%, #16191e 0%, #050607 74%);
+  box-shadow: inset 0 0 0 8px rgba(0, 0, 0, 0.45);
 }
 
 .betting-line {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 10%;
-  bottom: 12%;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  inset: 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
   pointer-events: none;
 }
 
@@ -597,7 +616,7 @@ body.table-room a {
 .table-seat {
   position: absolute;
   z-index: 2;
-  width: 10.5rem;
+  width: 8.2rem;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -688,8 +707,8 @@ body.table-room a {
 .timer-left { stroke: #f0c14a; }
 
 .empty-seat {
-  width: 2.65rem;
-  height: 2.65rem;
+  width: 2.35rem;
+  height: 2.35rem;
   border-radius: 50%;
   border: 2px solid #f7f7f7;
   background: radial-gradient(circle at 35% 30%, #ffffff, #d9d9d9 70%);

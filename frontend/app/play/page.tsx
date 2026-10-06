@@ -273,6 +273,16 @@ export default function PlayPage() {
 
   const legal = view?.game.legal_actions ?? [];
   const street = view?.game.street ?? "WAITING";
+  const handRunning = street !== "WAITING" && street !== "HAND_COMPLETE";
+  const startReason = !view
+    ? ""
+    : handRunning
+      ? "Hand in progress"
+      : view.settings.paused
+        ? "Table is paused"
+        : view.players.length < 2
+          ? "Need 2 seated players"
+          : "";
   const heroPlayer = view?.players.find((player) => player.seat === view.you.seat) ?? null;
   const sizeMode = legal.includes("raise") && !legal.includes("bet") ? "raise" : legal.includes("bet") ? "bet" : "";
   const sizeMin = sizeMode === "raise" ? (view?.game.min_raise_to ?? view?.game.big_blind ?? 2) : (view?.game.big_blind ?? 2);
@@ -324,6 +334,24 @@ export default function PlayPage() {
                 }
               }}
             />
+            {view.you.is_host ? (
+              <>
+                <button
+                  type="button"
+                  className="tool-start"
+                  data-testid="start-hand"
+                  disabled={startReason !== ""}
+                  onClick={() => void post("/start")}
+                >
+                  {t("Start hand")}
+                </button>
+                {startReason ? (
+                  <span className="start-reason" data-testid="start-reason">
+                    {t(startReason)}
+                  </span>
+                ) : null}
+              </>
+            ) : null}
             {view.you.is_host ? (
               <label className="seat-count">
                 {t("Seats")}
@@ -541,8 +569,7 @@ export default function PlayPage() {
                 {view.you.is_host ? (
                   <HostControls
                     paused={view.settings.paused}
-                    inHand={street !== "WAITING" && street !== "HAND_COMPLETE" && street !== null}
-                    onStart={() => void post("/start")}
+                    inHand={handRunning}
                     onPause={() => void post("/pause", { paused: !view.settings.paused })}
                     onBlinds={(small, big) => void post("/settings", { small_blind: small, big_blind: big })}
                     onRules={(rules) => void post("/settings", { rules })}
@@ -687,7 +714,6 @@ function ChatStrip() {
 function HostControls({
   paused,
   inHand,
-  onStart,
   onPause,
   onBlinds,
   onRules,
@@ -699,7 +725,6 @@ function HostControls({
 }: {
   paused: boolean;
   inHand: boolean;
-  onStart: () => void;
   onPause: () => void;
   onBlinds: (small: number, big: number) => void;
   onRules: (rules: Record<string, unknown>) => void;
@@ -716,9 +741,6 @@ function HostControls({
   return (
     <div className="host">
       <div className="row">
-        <button type="button" data-testid="start-hand" disabled={paused || inHand} onClick={onStart}>
-          {t("Start hand")}
-        </button>
         <button type="button" data-testid="pause" onClick={onPause}>
           {paused ? t("Resume") : t("Pause")}
         </button>

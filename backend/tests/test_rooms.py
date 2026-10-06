@@ -247,6 +247,28 @@ def _connect(stack: ExitStack, client: TestClient, token: str):
     return socket
 
 
+def test_nine_players_can_sit_and_a_hand_can_start() -> None:
+    with TestClient(app) as client:
+        host = _create(client, "Host")
+        waiting = _state(client, host)
+        assert waiting["settings"]["seats"] == 9
+        _sit(client, host, 0)
+        for seat in range(1, 9):
+            guest = _join(client, host["invite_code"], f"P{seat}")
+            _sit(client, guest, seat)
+        full = _state(client, host)
+        assert {row["seat"] for row in full["players"]} == set(range(9))
+        started = client.post(
+            f"/rooms/{host['room_id']}/start",
+            json={"guest_token": host["guest_token"]},
+        )
+        assert started.status_code == 200
+        live = _state(client, host)
+        assert live["game"]["street"] == "PREFLOP"
+        assert live["settings"]["seats"] == 9
+        assert len(live["players"]) == 9
+
+
 def test_player_view_numbers_the_hand_and_names_the_blinds() -> None:
     with TestClient(app) as client:
         alice = _create(client, "Alice")

@@ -84,11 +84,8 @@ export default function PokerTable(props: TableProps) {
   const slots = Array.from({ length: occupied }, (_, seat) => seat);
 
   return (
-    <div
-      className={props.layout === "embedded" ? "table-scene embedded" : "table-scene"}
-      data-testid="poker-table"
-      data-seats={occupied}
-    >
+    <div className={props.layout === "embedded" ? "table-scene embedded" : "table-scene"}>
+      <div className="stadium" data-testid="poker-table" data-seats={occupied}>
       <div className="table-rail" />
       <div className="felt-oval">
         <div className="betting-line" />
@@ -223,7 +220,8 @@ export default function PokerTable(props: TableProps) {
           </div>
           </Fragment>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }
@@ -267,20 +265,59 @@ function holeCards(
 
 function slotStyle(seat: number, count: number, anchor: number): { left: string; top: string } {
   const index = (seat - anchor + count) % count;
-  const angle = Math.PI / 2 + (2 * Math.PI * index) / count;
-  return point(angle, 40, 37);
+  return stadiumPoint(index, count, 0.045);
 }
 
 function betStyle(seat: number, count: number, anchor: number): { left: string; top: string } {
   const index = (seat - anchor + count) % count;
-  const angle = Math.PI / 2 + (2 * Math.PI * index) / count;
-  return point(angle, 26, 22);
+  return stadiumPoint(index, count, 0.2);
 }
 
-function point(angle: number, rx: number, ry: number): { left: string; top: string } {
+/** Racetrack perimeter. Index 0 is bottom center; later seats run left, across the top, then right. */
+function stadiumPoint(index: number, count: number, inset: number): { left: string; top: string } {
+  const aspect = 2.15;
+  const halfH = 0.5;
+  const halfW = aspect / 2;
+  const capCenter = halfW - halfH;
+  const radius = halfH - inset;
+  const straight = 2 * capCenter;
+  const arc = Math.PI * radius;
+  const total = 2 * straight + 2 * arc;
+  let dist = (index / count) * total;
+  let x = 0;
+  let y = radius;
+  const bottomHalf = straight / 2;
+  if (dist <= bottomHalf) {
+    x = -dist;
+    y = radius;
+  } else {
+    dist -= bottomHalf;
+    if (dist <= arc) {
+      const theta = Math.PI / 2 + dist / radius;
+      x = -capCenter + radius * Math.cos(theta);
+      y = radius * Math.sin(theta);
+    } else {
+      dist -= arc;
+      if (dist <= straight) {
+        x = -capCenter + dist;
+        y = -radius;
+      } else {
+        dist -= straight;
+        if (dist <= arc) {
+          const theta = -Math.PI / 2 + dist / radius;
+          x = capCenter + radius * Math.cos(theta);
+          y = radius * Math.sin(theta);
+        } else {
+          dist -= arc;
+          x = capCenter - dist;
+          y = radius;
+        }
+      }
+    }
+  }
   return {
-    left: `${50 + rx * Math.cos(angle)}%`,
-    top: `${50 + ry * Math.sin(angle)}%`,
+    left: `${((x + halfW) / (2 * halfW)) * 100}%`,
+    top: `${((y + halfH) / (2 * halfH)) * 100}%`,
   };
 }
 
