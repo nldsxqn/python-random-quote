@@ -1,0 +1,267 @@
+:root {
+  color-scheme: light;
+  --ink: #1c1917;
+  --muted: #57534e;
+  --line: #e7e5e4;
+  --paper: #fafaf9;
+  --card: #ffffff;
+  --ok: #15803d;
+  --bad: #b91c1c;
+  --wait: #a16207;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem 3rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.75rem;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0.35rem 1.25rem;
+}
+
+.block + .block {
+  border-top: 1px solid var(--line);
+}
+
+h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.9rem 0 0.2rem;
+}
+
+.state {
+  margin: 0 0 0.9rem;
+}
+
+.dot[data-state="Connected"] {
+  color: var(--ok);
+}
+
+.dot[data-state="Disconnected"] {
+  color: var(--bad);
+}
+
+.dot[data-state="Checking"] {
+  color: var(--wait);
+}
+
+.note {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+a {
+  color: inherit;
+}
+
+.play {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.play h1 {
+  margin-bottom: 0.35rem;
+}
+
+.lobby,
+.table,
+.host {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.lobby label,
+.host label {
+  display: block;
+  margin: 0.75rem 0 0.3rem;
+  font-size: 0.92rem;
+}
+
+.lobby input,
+.host input,
+.actions input {
+  width: 100%;
+  max-width: 16rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  color: inherit;
+  background: var(--paper);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: inherit;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.felt {
+  margin-top: 1rem;
+  background: #1f3d32;
+  color: #f5f5f4;
+  border-radius: 16px;
+  padding: 1.1rem;
+}
+
+.felt h2,
+.meta {
+  margin: 0;
+}
+
+.meta {
+  color: #d6d3d1;
+  margin-top: 0.25rem;
+}
+
+.cards {
+  display: flex;
+  gap: 0.4rem;
+  min-height: 3.2rem;
+  margin: 0.9rem 0;
+}
+
+.card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  padding: 0.45rem 0.35rem;
+  border-radius: 6px;
+  background: #fff;
+  color: #1c1917;
+  font-weight: 600;
+}
+
+.seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.seat[data-actor="true"] {
+  outline: 2px solid #fde68a;
+}
+
+.actions {
+  margin-top: 1rem;
+}
+
+.rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.rules label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0;
+}
+
+.rules input,
+.rules select {
+  width: auto;
+  max-width: 5.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.25rem 0.4rem;
+  font: inherit;
+  background: var(--paper);
+  color: inherit;
+}
+
+.rules input[type="checkbox"] {
+  width: auto;
+}
+
+.error {
+  color: var(--bad);
+  min-height: 1.4rem;
+}
+
+.matrix {
+  display: grid;
+  grid-template-columns: repeat(13, 1.35rem);
+  gap: 1px;
+  margin: 0.5rem 0 1rem;
+}
+
+.matrix span {
+  display: block;
+  height: 1.35rem;
+  background: #e7e5e4;
+  font-size: 0.65rem;
+  line-height: 1.35rem;
+  text-align: center;
+}
+
+.study {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.study button,
+.study input,
+.study select {
+  font: inherit;
+}

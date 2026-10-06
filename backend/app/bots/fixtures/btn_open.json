@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "game": {"small_blind": 1, "big_blind": 2},
+      "position": "BTN",
+      "stack_bb": 500,
+      "board": [],
+      "history": [],
+      "mix": {"raise": 1.0},
+      "raise_to": 6
+    }
+  ]
+}
