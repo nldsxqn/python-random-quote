@@ -510,6 +510,15 @@ body.table-room a {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
+.win-category {
+  margin: 0;
+  color: #ffe08a;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
 .board-cards {
   display: flex;
   flex-wrap: wrap;
@@ -575,6 +584,16 @@ body.table-room a {
   box-shadow: inset 0 0 0 4px rgba(10, 24, 70, 0.35), 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
+.playing-card.win {
+  box-shadow: 0 0 0 3px #f0c14a, 0 8px 14px rgba(0, 0, 0, 0.4);
+  transform: translateY(-6px);
+}
+
+.playing-card.dim {
+  opacity: 0.32;
+  filter: saturate(0.15);
+}
+
 .playing-card.back .pip,
 .playing-card.back .suit-big,
 .playing-card.back .code {
@@ -627,6 +646,57 @@ body.table-room a {
 .table-seat[data-hero="true"] {
   width: 13rem;
   z-index: 3;
+}
+
+.table-seat.winner {
+  z-index: 4;
+}
+
+.table-seat.winner .seat-plate {
+  border-color: #f0c14a;
+  box-shadow: 0 0 0 3px rgba(240, 193, 74, 0.9), 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+.winner-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.15rem;
+  color: #ffe08a;
+  font-weight: 800;
+  font-size: 0.92rem;
+  line-height: 1.15;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.seat-cards.folding {
+  animation: fold-away 420ms ease-in forwards;
+  transform-origin: center center;
+}
+
+.chip-flight {
+  position: absolute;
+  z-index: 6;
+  width: 1.7rem;
+  height: 0.42rem;
+  margin-left: -0.85rem;
+  margin-top: -0.21rem;
+  pointer-events: none;
+  animation: chip-to-pot 420ms ease-in forwards;
+}
+
+.chip-flight .chip {
+  display: block;
+}
+
+@keyframes fold-away {
+  0% { transform: translateY(0) rotateY(0deg); opacity: 1; }
+  40% { transform: translateY(-8px) rotateY(80deg); opacity: 1; }
+  100% { transform: translateY(-40px) rotateY(90deg); opacity: 0; }
+}
+
+@keyframes chip-to-pot {
+  to { left: 50%; top: 46%; }
 }
 
 .table-seat[data-hero="true"] .playing-card,

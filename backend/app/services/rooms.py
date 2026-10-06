@@ -706,6 +706,7 @@ class RoomService:
                 "action_history": [dict(item) for item in room.hand_history],
                 "insurance": _insurance_view(room, game),
                 "hand_number": room.hand_number or None,
+                "winners": _hand_winners(room),
             },
             "you": {
                 "nickname": member.nickname,
@@ -838,7 +839,7 @@ class RoomService:
                     "hole_cards": _codes(player.hole),
                 }
             )
-        return {"players": revealed}
+        return {"players": revealed, "winners": _hand_winners(room)}
 
     def _emit_progress(self, room: Room) -> None:
         game = room.game
@@ -879,7 +880,7 @@ class RoomService:
         if game.street is Street.HAND_COMPLETE:
             if "HAND_COMPLETE" not in room.emitted:
                 self._note_tournament(room)
-                self._add(room, "HAND_COMPLETE", {"board": board})
+                self._add(room, "HAND_COMPLETE", {"board": board, "winners": _hand_winners(room)})
                 room.emitted.add("HAND_COMPLETE")
                 if self.history is not None:
                     self.history.save_room(room)
@@ -1361,6 +1362,28 @@ def _insurance_payload(room: Room, game: CashGame) -> dict:
     if shown is None:
         return {"label": "simplified"}
     return shown
+
+
+def _hand_winners(room: Room) -> list[dict]:
+    """Pot awards from the engine. Fold wins have no category and no cards."""
+    game = room.game
+    if game is None or game.street is not Street.HAND_COMPLETE:
+        return []
+    rows = []
+    for item in game.settlement:
+        seat = _table_seat(room, item["seat"])
+        if seat is None:
+            continue
+        cards = item.get("cards")
+        rows.append(
+            {
+                "seat": seat,
+                "amount": int(item["amount"]),
+                "category": item.get("category"),
+                "cards": list(cards) if cards else None,
+            }
+        )
+    return rows
 
 
 def _pot_amount(game: CashGame) -> int:

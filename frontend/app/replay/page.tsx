@@ -47,6 +47,7 @@ type ReplayState = {
   players: ReplayPlayer[];
   jumps: { flop: number | null; turn: number | null; river: number | null; showdown: number | null };
   showdown: boolean;
+  winners?: { seat: number; amount: number; category?: string | null; cards?: string[] | null }[];
 };
 
 type HandDetail = {
@@ -210,6 +211,16 @@ export default function ReplayPage() {
             players={state.players}
             showdown={state.showdown}
             seatCount={state.seat_count}
+            winners={state.winners ?? []}
+            latestAction={
+              state.action && state.action.seat != null
+                ? {
+                    action: state.action.action,
+                    seat: state.action.seat,
+                    token: `${state.hand_id ?? 0}-${state.index}`,
+                  }
+                : null
+            }
             layout="embedded"
           />
           <div className="row">

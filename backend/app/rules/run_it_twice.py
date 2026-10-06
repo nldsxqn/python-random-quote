@@ -32,6 +32,7 @@ def execute(game: object, rake: RakeConfig | None, bounty: BountyConfig | None) 
         _contribution(game, seat)
         for seat in sorted(game.in_hand)
     ]
+    game.settlement = []
     pots = build_pots(contributions)
     if rake is not None:
         pots = apply_rake(game, rake, pots)
@@ -104,4 +105,5 @@ def _award(
     for seat, chips in split_amount(amount, ordered).items():
         game.players[seat].stack += chips
         awards.append({"seat": seat, "amount": chips})
+        game._note_winner(seat, chips, ranks.get(seat))
     return awards, set(tied)

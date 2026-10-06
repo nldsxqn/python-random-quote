@@ -71,7 +71,7 @@ def insert_hand(session: Session, room: Room) -> int:
     showdown_seats = {room.engine_seats[seat] for seat in game.showdown_seats}
     payouts = _payouts(room)
     all_ins = _all_in_seats(room)
-    winners = [row["seat"] for row in payouts if row["pot_payout"] > 0]
+    winners = _winner_rows(room)
     hand = Hand(
         room_id=room.room_id,
         started_at=room.hand_started_at or completed_at,
@@ -204,6 +204,23 @@ def _table(room: Room, engine_seat: int | None) -> int | None:
     if engine_seat is None:
         return None
     return room.engine_seats[engine_seat]
+
+
+def _winner_rows(room: Room) -> list[dict]:
+    game = room.game
+    assert game is not None
+    rows = []
+    for item in game.settlement:
+        cards = item.get("cards")
+        rows.append(
+            {
+                "seat": _table(room, item["seat"]),
+                "amount": item["amount"],
+                "category": item.get("category"),
+                "cards": list(cards) if cards else None,
+            }
+        )
+    return rows
 
 
 def _payouts(room: Room) -> list[dict]:

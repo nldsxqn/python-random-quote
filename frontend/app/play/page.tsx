@@ -57,6 +57,8 @@ type RoomView = {
     small_blind_seat: number | null;
     big_blind_seat: number | null;
     hand_number: number | null;
+    winners?: { seat: number; amount: number; category: string | null; cards: string[] | null }[];
+    action_history?: { seat: number; action: string; acted_at?: string }[];
   };
   you: {
     nickname: string;
@@ -284,6 +286,15 @@ export default function PlayPage() {
           ? "Need 2 seated players"
           : "";
   const heroPlayer = view?.players.find((player) => player.seat === view.you.seat) ?? null;
+  const history = view?.game.action_history ?? [];
+  const lastAction = history.length > 0 ? history[history.length - 1] : null;
+  const latestAction = lastAction
+    ? {
+        action: lastAction.action,
+        seat: lastAction.seat,
+        token: `${view?.game.hand_number ?? 0}:${history.length}:${lastAction.acted_at ?? ""}`,
+      }
+    : null;
   const sizeMode = legal.includes("raise") && !legal.includes("bet") ? "raise" : legal.includes("bet") ? "bet" : "";
   const sizeMin = sizeMode === "raise" ? (view?.game.min_raise_to ?? view?.game.big_blind ?? 2) : (view?.game.big_blind ?? 2);
   const sizeMax = heroPlayer
@@ -387,6 +398,8 @@ export default function PlayPage() {
             heroSeat={view.you.seat}
             players={view.players}
             seatCount={view.settings.seats}
+            winners={view.game.winners ?? []}
+            latestAction={latestAction}
             onSit={(seat) => {
               const chips = readBuyIn();
               if (chips !== null) {

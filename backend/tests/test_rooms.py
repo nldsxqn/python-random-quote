@@ -269,6 +269,69 @@ def test_nine_players_can_sit_and_a_hand_can_start() -> None:
         assert len(live["players"]) == 9
 
 
+def test_showdown_payload_names_the_winner_and_fold_win_omits_cards() -> None:
+    with TestClient(app) as client:
+        host = _create(client, "Host")
+        guest = _join(client, host["invite_code"], "Guest")
+        _sit(client, host, 0)
+        _sit(client, guest, 1)
+        with ExitStack() as stack:
+            host_ws = _connect(stack, client, host["guest_token"])
+            _connect(stack, client, guest["guest_token"])
+            started = client.post(
+                f"/rooms/{host['room_id']}/start",
+                json={"guest_token": host["guest_token"]},
+            )
+            assert started.status_code == 200
+            _until(host_ws, "ACTION_REQUIRED")
+            host_ws.send_json(
+                {"type": "PLAYER_ACTION", "request_id": "fold-out", "payload": {"action": "fold"}}
+            )
+            done = _until(host_ws, "HAND_COMPLETE")
+            assert all(item["type"] != "SHOWDOWN" for item in done)
+            complete = next(item for item in done if item["type"] == "HAND_COMPLETE")
+            folded = complete["payload"]["winners"]
+            assert len(folded) == 1
+            assert folded[0]["seat"] == 1
+            assert folded[0]["amount"] == 3
+            assert folded[0]["category"] is None
+            assert folded[0]["cards"] is None
+            assert _state(client, host)["game"]["winners"] == folded
+
+        shown = _create(client, "Alice")
+        bob = _join(client, shown["invite_code"], "Bob")
+        _sit(client, shown, 0)
+        _sit(client, bob, 1)
+        app.state.hub.service.set_deck(shown["room_id"], RiggedDeck(list(SHOWDOWN_PREFIX)))
+        with ExitStack() as stack:
+            alice_ws = _connect(stack, client, shown["guest_token"])
+            bob_ws = _connect(stack, client, bob["guest_token"])
+            started = client.post(
+                f"/rooms/{shown['room_id']}/start",
+                json={"guest_token": shown["guest_token"]},
+            )
+            assert started.status_code == 200
+            _until(alice_ws, "ACTION_REQUIRED")
+            alice_ws.send_json(
+                {"type": "PLAYER_ACTION", "request_id": "shove", "payload": {"action": "all_in"}}
+            )
+            _until(alice_ws, "ACTION_REQUIRED")
+            bob_ws.send_json(
+                {"type": "PLAYER_ACTION", "request_id": "call", "payload": {"action": "call"}}
+            )
+            rest = _until(alice_ws, "HAND_COMPLETE")
+            showdown = next(item for item in rest if item["type"] == "SHOWDOWN")
+            winners = showdown["payload"]["winners"]
+            assert len(winners) == 1
+            assert winners[0]["seat"] == 0
+            assert winners[0]["amount"] == 2000
+            assert winners[0]["category"] == "One pair"
+            assert winners[0]["cards"] is not None
+            assert len(winners[0]["cards"]) == 5
+            assert set(winners[0]["cards"]) == {"As", "Ad", "Jc", "9h", "7d"}
+            assert _state(client, shown)["game"]["winners"] == winners
+
+
 def test_player_view_numbers_the_hand_and_names_the_blinds() -> None:
     with TestClient(app) as client:
         alice = _create(client, "Alice")

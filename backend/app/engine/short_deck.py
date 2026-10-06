@@ -44,23 +44,24 @@ def _five(cards: tuple[Card, ...]) -> HandStrength:
     counts = Counter(ranks)
     pattern = tuple(sorted(counts.values(), reverse=True))
     ordered = sorted(counts, key=lambda rank: (counts[rank], rank), reverse=True)
+    played = tuple(card.code for card in cards)
     if straight and flush:
-        return _strength(8, [top])
+        return _strength(8, [top], played)
     if pattern == (4, 1):
-        return _strength(7, ordered)
+        return _strength(7, ordered, played)
     if flush:
-        return _strength(6, ranks)
+        return _strength(6, ranks, played)
     if pattern == (3, 2):
-        return _strength(5, ordered)
+        return _strength(5, ordered, played)
     if straight:
-        return _strength(4, [top])
+        return _strength(4, [top], played)
     if pattern == (3, 1, 1):
-        return _strength(3, ordered)
+        return _strength(3, ordered, played)
     if pattern == (2, 2, 1):
-        return _strength(2, ordered)
+        return _strength(2, ordered, played)
     if pattern == (2, 1, 1, 1):
-        return _strength(1, ordered)
-    return _strength(0, ranks)
+        return _strength(1, ordered, played)
+    return _strength(0, ranks, played)
 
 
 def _straight(ranks: list[int]) -> tuple[bool, int]:
@@ -72,9 +73,9 @@ def _straight(ranks: list[int]) -> tuple[bool, int]:
     return False, 0
 
 
-def _strength(category: int, kickers: list[int]) -> HandStrength:
+def _strength(category: int, kickers: list[int], cards: tuple[str, ...] = ()) -> HandStrength:
     slots = [*kickers, 0, 0, 0, 0, 0][:5]
     value = category
     for rank in slots:
         value = value * 15 + rank
-    return HandStrength(index=value, category=_CATEGORIES[category])
+    return HandStrength(index=value, category=_CATEGORIES[category], cards=cards)

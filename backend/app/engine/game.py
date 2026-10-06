@@ -6,7 +6,7 @@ from app.engine.actions import Action, IllegalActionError
 from app.engine.betting import ActionEffect, needs_action, resolve_action
 from app.engine.cards import Card, standard_deck
 from app.engine.deck import DeckProvider, SystemRandomDeck
-from app.engine.evaluator import HandStrength, evaluate
+from app.engine.evaluator import HandStrength, canonical_category, evaluate
 from app.engine.player import Player, PlayerStatus
 from app.engine.plugins import HandRules
 from app.engine.pot import Contribution, Pot, build_pots, odd_chip_order, split_amount
@@ -67,6 +67,7 @@ class CashGame:
         self.insurance_quote: dict | None = None
         self.insurance_result: dict | None = None
         self.board_result: dict | None = None
+        self.settlement: list[dict] = []
 
     def start_hand(self) -> None:
         if self.street not in {Street.WAITING, Street.HAND_COMPLETE}:
@@ -171,6 +172,7 @@ class CashGame:
         self.bounty = 0
         self.bounty_payments = []
         self.top_ups = []
+        self.settlement = []
 
     def apply(self, action: Action, seat: int | None = None) -> None:
         snapshot = copy.deepcopy(self.__dict__)
@@ -345,7 +347,9 @@ class CashGame:
             winners = self._alive_seats()
             if len(winners) != 1:
                 raise RuntimeError("fold win needs one remaining player")
-            self.players[winners[0]].stack += sum(pot.amount for pot in self.pots)
+            total = sum(pot.amount for pot in self.pots)
+            self.players[winners[0]].stack += total
+            self._note_winner(winners[0], total, None)
             self.rules.apply_bounty(self, set(winners))
             return
         showdown_winners: set[int] = set()
@@ -361,6 +365,7 @@ class CashGame:
             ordered = odd_chip_order(tied, self.button, len(self.players))
             for seat, chips in split_amount(pot.amount, ordered).items():
                 self.players[seat].stack += chips
+                self._note_winner(seat, chips, ranks[seat])
         self.rules.apply_bounty(self, showdown_winners)
 
     def _prepare_players(self) -> None:
@@ -477,7 +482,34 @@ class CashGame:
         for seat, chips in split_amount(amount, ordered).items():
             self.players[seat].stack += chips
             awards.append({"seat": seat, "amount": chips})
+            self._note_winner(seat, chips, ranks.get(seat))
         return awards, set(tied)
+
+    def _note_winner(self, seat: int, amount: int, strength: HandStrength | None) -> None:
+        """Record a pot award. Fold wins carry no made hand."""
+        if amount < 0:
+            return
+        category = None if strength is None else canonical_category(strength.category)
+        cards = list(strength.cards) if strength is not None and strength.cards else None
+        rank_index = None if strength is None else strength.index
+        for row in self.settlement:
+            if row["seat"] != seat:
+                continue
+            row["amount"] += amount
+            if rank_index is not None and (row["index"] is None or rank_index >= row["index"]):
+                row["category"] = category
+                row["cards"] = cards
+                row["index"] = rank_index
+            return
+        self.settlement.append(
+            {
+                "seat": seat,
+                "amount": amount,
+                "category": category,
+                "cards": cards,
+                "index": rank_index,
+            }
+        )
 
     def _deal_next_street(self) -> None:
         if self.rules.board_count(self) == 2:
