@@ -16,6 +16,26 @@ def default_cors_origins() -> list[str]:
     return ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 
+# Localhost, loopback, RFC1918, link-local, a single-label PC name, or a .local name.
+# This is not a wildcard: public hosts such as https://evil.example do not match.
+LAN_ORIGIN_REGEX = (
+    r"(?i)^https?://"
+    r"(?:"
+    r"localhost"
+    r"|127(?:\.\d{1,3}){3}"
+    r"|\[::1\]"
+    r"|10(?:\.\d{1,3}){3}"
+    r"|192\.168(?:\.\d{1,3}){2}"
+    r"|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2}"
+    r"|169\.254(?:\.\d{1,3}){2}"
+    r"|[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+    r"|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+local"
+    r")"
+    r"(?::\d{1,5})?"
+    r"$"
+)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),

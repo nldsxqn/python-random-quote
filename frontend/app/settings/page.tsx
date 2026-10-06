@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { apiUrl } from "@/lib/server-url";
 const STORAGE_KEY = "openpokerlab.play";
 
 type Catalog = {
@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    void fetch(`${API_URL}/settings`)
+    void fetch(apiUrl("/settings"))
       .then((response) => response.json())
       .then((body: Catalog) => setCatalog(body));
     const saved = window.sessionStorage.getItem(STORAGE_KEY);
@@ -52,7 +52,7 @@ export default function SettingsPage() {
       setMessage("Open a table from Play first");
       return;
     }
-    const response = await fetch(`${API_URL}/rooms/${session.roomId}${path}`, {
+    const response = await fetch(apiUrl(`/rooms/${session.roomId}${path}`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ guest_token: session.guestToken, ...extra }),

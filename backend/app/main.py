@@ -9,7 +9,7 @@ from app.api.room_routes import router
 from app.api.settings_routes import router as settings_router
 from app.api.solver_routes import router as solver_router
 from app.api.study_routes import router as study_router
-from app.config.settings import get_settings
+from app.config.settings import LAN_ORIGIN_REGEX, get_settings
 from app.database.migrate import upgrade_database
 from app.db import create_db_engine, database_status
 from app.history.store import HandHistory
@@ -39,7 +39,9 @@ app.state.hub = RoomHub(history=app.state.history)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=LAN_ORIGIN_REGEX,
     allow_credentials=True,
+    allow_private_network=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

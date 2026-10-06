@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type LinkState = "Checking" | "Connected" | "Disconnected";
+import { apiUrl, wsUrl } from "@/lib/server-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/ws";
+type LinkState = "Checking" | "Connected" | "Disconnected";
 
 export default function HomePage() {
   const [backend, setBackend] = useState<LinkState>("Checking");
@@ -17,7 +16,7 @@ export default function HomePage() {
 
     async function checkHealth(): Promise<void> {
       try {
-        const response = await fetch(`${API_URL}/health`, { cache: "no-store" });
+        const response = await fetch(apiUrl("/health"), { cache: "no-store" });
         if (!response.ok) {
           if (!stopped) {
             setBackend("Disconnected");
@@ -47,7 +46,7 @@ export default function HomePage() {
       if (stopped) {
         return;
       }
-      ws = new WebSocket(WS_URL);
+      ws = new WebSocket(wsUrl("/ws"));
       ws.onmessage = (event: MessageEvent<string>) => {
         try {
           const message = JSON.parse(event.data) as { type?: string };

@@ -76,9 +76,9 @@ Do not put decks, cards, or hidden state on this socket. Echo is optional and is
 
 Host-only HTTP: `POST /rooms/{id}/start`, `/pause`, `/settings`, `/bots`, and `/bots/remove`. Blind and rule changes apply on the next hand, never mid-hand. Non-host attempts return `ERROR` with HTTP 403. Sitting posts 1000 play-money chips the first time, unless buy-in limits are on; `POST /rooms/{id}/sit` may send `amount`, and `POST /rooms/{id}/chips` adds play-money chips. A bot seat gets a nickname and an internal guest token that is not returned to the browser.
 
-CORS allows the Next.js app on `http://localhost:3000` and `http://127.0.0.1:3000`.
+CORS allows the Next.js app on localhost, `127.0.0.1`, and private LAN hosts, including a single-label PC name. It echoes that origin. It is not a credentialed wildcard, and a public origin is rejected.
 
-Settings environment names: `API_HOST`, `API_PORT`, `DATABASE_URL`. Frontend: `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`), `NEXT_PUBLIC_WS_URL` (default `ws://localhost:8000/ws`).
+Settings environment names: `API_HOST`, `API_PORT`, `DATABASE_URL`. Frontend: `NEXT_PUBLIC_API_URL`. When that variable is unset, the browser uses the page hostname on port 8000, and the socket uses `ws` or `wss` to match the page. `NEXT_PUBLIC_WS_URL` overrides only the `/ws` hello socket.
 
 Engine contracts:
 

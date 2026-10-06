@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { apiUrl } from "@/lib/server-url";
 
 type Prompt = {
   street: string;
@@ -60,7 +60,7 @@ export default function TrainerPage() {
     if (dateTo) {
       params.set("date_to", dateTo);
     }
-    const response = await fetch(`${API_URL}/trainer/spots?${params.toString()}`);
+    const response = await fetch(apiUrl(`/trainer/spots?${params.toString()}`));
     const body = (await response.json()) as { spots: Spot[] };
     setSpots(body.spots);
     setCurrent(null);
@@ -68,7 +68,7 @@ export default function TrainerPage() {
   }
 
   useEffect(() => {
-    void fetch(`${API_URL}/trainer/spots`)
+    void fetch(apiUrl("/trainer/spots"))
       .then((response) => response.json())
       .then((body: { spots: Spot[] }) => {
         setSpots(body.spots);
@@ -80,7 +80,7 @@ export default function TrainerPage() {
       return;
     }
     setError("");
-    const response = await fetch(`${API_URL}/trainer/spots/${current.id}/answer`, {
+    const response = await fetch(apiUrl(`/trainer/spots/${current.id}/answer`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action }),

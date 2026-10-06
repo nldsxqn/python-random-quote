@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { apiUrl } from "@/lib/server-url";
 
 type Decision = {
   street: string;
@@ -49,7 +49,7 @@ export default function AnalyzePage() {
 
   async function load(): Promise<void> {
     setError("");
-    const response = await fetch(`${API_URL}/analyze/hands/${handId}`);
+    const response = await fetch(apiUrl(`/analyze/hands/${handId}`));
     if (!response.ok) {
       setReport(null);
       setError("That hand is not stored");

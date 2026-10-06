@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { apiUrl, wsUrl } from "@/lib/server-url";
+
 type PlayerRow = {
   seat: number;
   nickname: string;
@@ -68,7 +70,6 @@ type Session = {
   nickname: string;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const STORAGE_KEY = "openpokerlab.play";
 
 export default function PlayPage() {
@@ -104,7 +105,7 @@ export default function PlayPage() {
       if (stopped || !session) {
         return;
       }
-      socket = new WebSocket(roomSocketUrl());
+      socket = new WebSocket(wsUrl("/ws/room"));
       socketRef.current = socket;
       socket.onopen = () => {
         socket?.send(
@@ -153,16 +154,17 @@ export default function PlayPage() {
   async function enter(path: string, body: { nickname: string; invite_code?: string }): Promise<void> {
     setError("");
     try {
-      const response = await fetch(`${API_URL}${path}`, {
+      const response = await fetch(apiUrl(path), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const payload = (await response.json()) as SessionResponse & { payload?: { message?: string } };
+      const raw = await response.text();
       if (!response.ok) {
-        setError(payload.payload?.message ?? "Could not enter the room");
+        setError(serverMessage(raw));
         return;
       }
+      const payload = JSON.parse(raw) as SessionResponse;
       const next = {
         roomId: payload.room_id,
         inviteCode: payload.invite_code,
@@ -181,14 +183,13 @@ export default function PlayPage() {
       return;
     }
     setError("");
-    const response = await fetch(`${API_URL}/rooms/${session.roomId}${path}`, {
+    const response = await fetch(apiUrl(`/rooms/${session.roomId}${path}`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ guest_token: session.guestToken, ...extra }),
     });
     if (!response.ok) {
-      const payload = (await response.json()) as { payload?: { message?: string } };
-      setError(payload.payload?.message ?? "Request failed");
+      setError(serverMessage(await response.text()));
     }
   }
 
@@ -411,7 +412,9 @@ export default function PlayPage() {
               Join room
             </button>
           </div>
-          <p className="error">{error}</p>
+          <p className="error" data-testid="error">
+            {error}
+          </p>
         </section>
       )}
     </main>
@@ -629,9 +632,46 @@ function RulesForm({ onSave }: { onSave: (rules: Record<string, unknown>) => voi
   );
 }
 
-function roomSocketUrl(): string {
-  const base = API_URL.replace(/^http/i, "ws").replace(/\/$/, "");
-  return `${base}/ws/room`;
+function serverMessage(raw: string): string {
+  if (!raw.trim()) {
+    return "Could not enter the room";
+  }
+  try {
+    const payload = JSON.parse(raw) as {
+      payload?: { message?: string };
+      detail?: unknown;
+      message?: string;
+    };
+    if (payload.payload?.message) {
+      return payload.payload.message;
+    }
+    if (typeof payload.message === "string" && payload.message) {
+      return payload.message;
+    }
+    if (typeof payload.detail === "string" && payload.detail) {
+      return payload.detail;
+    }
+    if (Array.isArray(payload.detail)) {
+      const parts = payload.detail
+        .map((item) => {
+          if (typeof item === "string") {
+            return item;
+          }
+          if (item && typeof item === "object" && "msg" in item) {
+            const msg = (item as { msg?: unknown }).msg;
+            return typeof msg === "string" ? msg : "";
+          }
+          return "";
+        })
+        .filter(Boolean);
+      if (parts.length > 0) {
+        return parts.join("; ");
+      }
+    }
+  } catch {
+    return raw;
+  }
+  return raw;
 }
 
 type SessionResponse = {

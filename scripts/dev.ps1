@@ -34,14 +34,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 
-$ApiCommand = "Set-Location -LiteralPath '$Root\backend'; & '$VenvPython' -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
-$WebCommand = "Set-Location -LiteralPath '$Frontend'; npm run dev"
+$ApiCommand = "Set-Location -LiteralPath '$Root\backend'; & '$VenvPython' -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+$WebCommand = "Set-Location -LiteralPath '$Frontend'; npm run dev -- --hostname 0.0.0.0"
 Start-Process -FilePath "powershell" -ArgumentList @("-NoExit", "-Command", $ApiCommand)
 Start-Process -FilePath "powershell" -ArgumentList @("-NoExit", "-Command", $WebCommand)
 
 Write-Host ""
-Write-Host "API:  http://127.0.0.1:8000/health"
+Write-Host "API:  http://127.0.0.1:8000/health  (listening on 0.0.0.0:8000)"
 Write-Host "Play: http://localhost:3000/play"
+Write-Host "Other computers on the LAN open http://<this-pc-ip>:3000/play"
 Write-Host "Leave the two new windows open while you play."
 Start-Sleep -Seconds 3
 Start-Process "http://localhost:3000/play"

@@ -111,9 +111,7 @@ cd python-random-quote
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1
 ```
 
-脚本会创建 `backend\.venv`、安装依赖，并打开两个窗口：API 在 `http://127.0.0.1:8000`，页面在 `http://localhost:3000`。打牌地址是 `http://localhost:3000/play`。这两个窗口要保持开着。数据库文件在 `data\openpokerlab.db`，第一次启动会自己建好。不要把 `.env.example` 里的云端路径抄进 `.env`。
-
-只想在本机玩时，用上面的地址即可。同一局域网里的其他电脑要连你的 API 时，再把 API 改成 `--host 0.0.0.0`，并在 Windows 防火墙里放行私有网络。
+脚本会创建 `backend\.venv`、安装依赖，并打开两个窗口：API 监听 `0.0.0.0:8000`，页面在 `http://localhost:3000`。本机打牌地址是 `http://localhost:3000/play`。同一局域网的另一台电脑打开 `http://<这台电脑的IP>:3000/play`。页面没有单独配置 API 地址时，会连当前网址的主机名、端口 8000。这两个窗口要保持开着。如果 Windows 防火墙询问，允许专用网络。数据库文件在 `data\openpokerlab.db`，第一次启动会自己建好。不要把 `.env.example` 里的地址抄进 `frontend\.env.local`，否则浏览器会一直请求 localhost。
 
 ## 在这台 Linux 上安装并运行
 

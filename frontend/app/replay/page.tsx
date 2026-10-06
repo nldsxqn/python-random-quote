@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { apiUrl } from "@/lib/server-url";
 
 type HandSummary = {
   id: number;
@@ -63,7 +63,7 @@ export default function ReplayPage() {
 
   useEffect(() => {
     const query = roomId ? `?room_id=${encodeURIComponent(roomId)}` : "";
-    void fetch(`${API_URL}/hands${query}`)
+    void fetch(apiUrl(`/hands${query}`))
       .then(async (response) => {
         if (!response.ok) {
           setError("Could not load hands");
@@ -80,7 +80,7 @@ export default function ReplayPage() {
       return;
     }
     const seat = viewer === null ? "" : `?viewer_seat=${viewer}`;
-    void fetch(`${API_URL}/hands/${handId}${seat}`)
+    void fetch(apiUrl(`/hands/${handId}${seat}`))
       .then(async (response) => {
         if (!response.ok) {
           setError("Could not load that hand");
@@ -101,7 +101,7 @@ export default function ReplayPage() {
       return;
     }
     const seat = viewer === null ? "" : `&viewer_seat=${viewer}`;
-    void fetch(`${API_URL}/hands/${handId}/state?index=${index}${seat}`)
+    void fetch(apiUrl(`/hands/${handId}/state?index=${index}${seat}`))
       .then(async (response) => {
         if (!response.ok) {
           setError("Could not load that action");
